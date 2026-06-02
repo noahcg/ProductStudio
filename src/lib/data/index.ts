@@ -21,6 +21,8 @@ import type {
   Decision,
   DecisionInput,
   RoadmapItem,
+  RoadmapInput,
+  RoadmapPlacement,
   Signal,
   Integration,
   Activity,
@@ -139,6 +141,22 @@ export async function deleteDecision(id: string): Promise<void> {
 
 export async function getRoadmap(): Promise<RoadmapItem[]> {
   return withSource((s) => s.roadmap());
+}
+
+export async function createRoadmapItem(input: RoadmapInput): Promise<RoadmapItem> {
+  return activeSource().createRoadmapItem(input);
+}
+
+export async function updateRoadmapItem(id: string, input: RoadmapInput): Promise<RoadmapItem> {
+  return activeSource().updateRoadmapItem(id, input);
+}
+
+export async function deleteRoadmapItem(id: string): Promise<void> {
+  return activeSource().deleteRoadmapItem(id);
+}
+
+export async function setRoadmapPlacement(placements: RoadmapPlacement[]): Promise<void> {
+  return activeSource().setRoadmapPlacement(placements);
 }
 
 // ---- Signals / integrations / activity ----

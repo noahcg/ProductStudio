@@ -64,17 +64,17 @@ from (values
 -- -----------------------------------------------------------------------------
 -- roadmap_items (Now / Next / Later)
 -- -----------------------------------------------------------------------------
-insert into roadmap_items (project_id, milestone_id, title, column_key, effort, tag, position) values
-  ((select id from projects where slug = 'home-cooked'),      (select id from milestones where slug = 'm-home-cooked'),      'Family Sharing MVP',          'now',   'M', 'milestone', 1),
-  ((select id from projects where slug = 'home-cooked'),      null,                                                          'Settings UI refresh',         'now',   'S', null,         2),
-  ((select id from projects where slug = 'wardrobe-harmony'), (select id from milestones where slug = 'm-wardrobe-harmony'), 'Closet Import',               'now',   'L', 'milestone', 3),
-  ((select id from projects where slug = 'home-cooked'),      null,                                                          'Recipe import from URL',      'next',  'M', null,         4),
-  ((select id from projects where slug = 'wardrobe-harmony'), null,                                                          'Color-match recommendations', 'next',  'L', null,         5),
-  ((select id from projects where slug = 'personal-trainer'), (select id from milestones where slug = 'm-personal-trainer'), 'Client scheduling',           'next',  'M', 'milestone', 6),
-  ((select id from projects where slug = 'cascade-lounge'),   null,                                                          'Spring content drop',         'next',  'S', null,         7),
-  ((select id from projects where slug = 'home-cooked'),      null,                                                          'Mobile app shell',            'later', 'L', null,         8),
-  ((select id from projects where slug = 'personal-trainer'), null,                                                          'Stripe billing',              'later', 'M', null,         9),
-  ((select id from projects where slug = 'cascade-lounge'),   null,                                                          'Newsletter automation',       'later', 'S', null,        10);
+insert into roadmap_items (project_id, milestone_id, title, column_key, effort, tag, priority, status, sort_order) values
+  ((select id from projects where slug = 'home-cooked'),      (select id from milestones where slug = 'm-home-cooked'),      'Family Sharing MVP',          'now',   'M', 'milestone', 'High',   'in_progress',  1),
+  ((select id from projects where slug = 'home-cooked'),      null,                                                          'Settings UI refresh',         'now',   'S', null,         'Medium', 'in_progress',  2),
+  ((select id from projects where slug = 'wardrobe-harmony'), (select id from milestones where slug = 'm-wardrobe-harmony'), 'Closet Import',               'now',   'L', 'milestone', 'High',   'in_progress',  3),
+  ((select id from projects where slug = 'home-cooked'),      null,                                                          'Recipe import from URL',      'next',  'M', null,         'Medium', 'planned',      4),
+  ((select id from projects where slug = 'wardrobe-harmony'), null,                                                          'Color-match recommendations', 'next',  'L', null,         'Medium', 'planned',      5),
+  ((select id from projects where slug = 'personal-trainer'), (select id from milestones where slug = 'm-personal-trainer'), 'Client scheduling',           'next',  'M', 'milestone', 'High',   'planned',      6),
+  ((select id from projects where slug = 'cascade-lounge'),   null,                                                          'Spring content drop',         'next',  'S', null,         'Medium', 'planned',      7),
+  ((select id from projects where slug = 'home-cooked'),      null,                                                          'Mobile app shell',            'later', 'L', null,         'Medium', 'planned',      8),
+  ((select id from projects where slug = 'personal-trainer'), null,                                                          'Stripe billing',              'later', 'M', null,         'Medium', 'planned',      9),
+  ((select id from projects where slug = 'cascade-lounge'),   null,                                                          'Newsletter automation',       'later', 'S', null,         'Medium', 'planned',     10);
 
 -- -----------------------------------------------------------------------------
 -- decisions

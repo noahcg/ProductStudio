@@ -4,6 +4,8 @@ import type {
   Milestone,
   Task,
   RoadmapItem,
+  RoadmapInput,
+  RoadmapPlacement,
   Decision,
   DecisionInput,
   Activity,
@@ -85,8 +87,13 @@ function mapRoadmap(r: Row): RoadmapItem {
     projectId: nested(r, "project") ?? "",
     milestoneId: nested(r, "milestone"),
     title: s(r.title),
+    description: opt(r.description),
     column: r.column_key as RoadmapItem["column"],
+    priority: r.priority as RoadmapItem["priority"],
+    status: r.status as RoadmapItem["status"],
     effort: r.effort as RoadmapItem["effort"],
+    sortOrder: Number(r.sort_order ?? 0),
+    targetDate: opt(r.target_date),
     tag: opt(r.tag),
   };
 }
@@ -195,7 +202,7 @@ export function supabaseSource(sb: SupabaseClient): DataSource {
     },
     async roadmap() {
       return (
-        await rows("roadmap_items", "*, project:projects(slug), milestone:milestones(slug)", { column: "position" })
+        await rows("roadmap_items", "*, project:projects(slug), milestone:milestones(slug)", { column: "sort_order" })
       ).map(mapRoadmap);
     },
     async decisions() {
@@ -277,6 +284,54 @@ export function supabaseSource(sb: SupabaseClient): DataSource {
       const { error } = await sb.from("decisions").delete().eq("id", id);
       if (error) throw error;
     },
+
+    // ---- Writes (Roadmap) ----
+
+    async createRoadmapItem(input: RoadmapInput): Promise<RoadmapItem> {
+      const project_id = await projectUuid(sb, input.projectId);
+      const { data: maxRow } = await sb
+        .from("roadmap_items")
+        .select("sort_order")
+        .order("sort_order", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const sort_order = ((maxRow?.sort_order as number | undefined) ?? 0) + 1;
+
+      const { data, error } = await sb
+        .from("roadmap_items")
+        .insert({ ...roadmapPayload(input), project_id, sort_order })
+        .select("*, project:projects(slug), milestone:milestones(slug)")
+        .single();
+      if (error) throw error;
+      return mapRoadmap(data as unknown as Row);
+    },
+
+    async updateRoadmapItem(id: string, input: RoadmapInput): Promise<RoadmapItem> {
+      const project_id = await projectUuid(sb, input.projectId);
+      const { data, error } = await sb
+        .from("roadmap_items")
+        .update({ ...roadmapPayload(input), project_id })
+        .eq("id", id)
+        .select("*, project:projects(slug), milestone:milestones(slug)")
+        .single();
+      if (error) throw error;
+      return mapRoadmap(data as unknown as Row);
+    },
+
+    async deleteRoadmapItem(id: string): Promise<void> {
+      const { error } = await sb.from("roadmap_items").delete().eq("id", id);
+      if (error) throw error;
+    },
+
+    async setRoadmapPlacement(placements: RoadmapPlacement[]): Promise<void> {
+      for (const p of placements) {
+        const { error } = await sb
+          .from("roadmap_items")
+          .update({ column_key: p.column, sort_order: p.sortOrder })
+          .eq("id", p.id);
+        if (error) throw error;
+      }
+    },
   };
 }
 
@@ -296,5 +351,17 @@ function payload(input: DecisionInput) {
     rationale: input.rationale,
     tradeoffs: input.tradeoffs?.trim() || null,
     tags: input.tags,
+  };
+}
+
+function roadmapPayload(input: RoadmapInput) {
+  return {
+    title: input.title,
+    description: input.description?.trim() || null,
+    column_key: input.column,
+    priority: input.priority,
+    status: input.status,
+    effort: input.effort,
+    target_date: input.targetDate || null,
   };
 }

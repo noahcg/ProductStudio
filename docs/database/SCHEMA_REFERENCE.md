@@ -91,16 +91,25 @@ Aggregate root.
 | progress | int 0–100 | |
 | status | text | CHECK `active\|planned\|shipped` |
 
-### `roadmap_items` ⟷ `RoadmapItem`
+### `roadmap_items` ⟷ `RoadmapItem`  (planning board — CRUD/move/reorder in Phase 2.6)
 | Column | Type | Notes |
 |---|---|---|
 | id | uuid PK | |
 | project_id | uuid FK→projects | cascade |
 | milestone_id | uuid FK→milestones NULL | set null on delete |
 | title | text | |
-| **column_key** | text | CHECK `now\|next\|later` — maps to domain `RoadmapItem.column` (`column` is a SQL reserved word) |
+| description | text NULL | *(added 2.6)* |
+| **column_key** | text | CHECK `now\|next\|later` — domain `RoadmapItem.column` (`column` is reserved) |
+| priority | text NOT NULL default `Medium` | CHECK `High\|Medium\|Low` *(added 2.6)* |
+| status | text NOT NULL default `planned` | CHECK `planned\|in_progress\|done` *(added 2.6)* |
 | effort | text | CHECK `S\|M\|L` |
+| target_date | date NULL | *(added 2.6)* |
+| **sort_order** | integer | within-column order; mutated by reorder/move *(renamed from `position` in 2.6)* |
 | tag | text NULL | e.g. `milestone` |
+
+Migration: [`20260602160000_roadmap_planning.sql`](../../supabase/migrations/20260602160000_roadmap_planning.sql)
+adds `description`/`priority`/`status`/`target_date` and renames `position` → `sort_order`
+(additive + safe rename; existing rows preserved).
 
 ### `tasks` ⟷ `Task`
 | Column | Type | Notes |

@@ -3,6 +3,8 @@ import type {
   Milestone,
   Task,
   RoadmapItem,
+  RoadmapInput,
+  RoadmapPlacement,
   Decision,
   DecisionInput,
   Activity,
@@ -40,6 +42,13 @@ export interface DataSource {
   createDecision(input: DecisionInput): Promise<Decision>;
   updateDecision(id: string, input: DecisionInput): Promise<Decision>;
   deleteDecision(id: string): Promise<void>;
+
+  // Writes (Roadmap planning).
+  createRoadmapItem(input: RoadmapInput): Promise<RoadmapItem>;
+  updateRoadmapItem(id: string, input: RoadmapInput): Promise<RoadmapItem>;
+  deleteRoadmapItem(id: string): Promise<void>;
+  /** Apply column/order changes from move & reorder operations. */
+  setRoadmapPlacement(placements: RoadmapPlacement[]): Promise<void>;
 }
 
 /** Choose the active source: Supabase when configured, else mock. */

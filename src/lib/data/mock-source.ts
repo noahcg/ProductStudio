@@ -1,4 +1,10 @@
-import type { Decision, DecisionInput } from "../domain";
+import type {
+  Decision,
+  DecisionInput,
+  RoadmapItem,
+  RoadmapInput,
+  RoadmapPlacement,
+} from "../domain";
 import type { DataSource } from "./source";
 import { projects } from "./projects";
 import { milestones } from "./milestones";
@@ -81,7 +87,68 @@ export const mockSource: DataSource = {
     const i = decisions.findIndex((d) => d.id === id);
     if (i !== -1) decisions.splice(i, 1);
   },
+
+  // ---- Writes: roadmap (mutate in-memory `roadmap` array) ----
+  async createRoadmapItem(input: RoadmapInput) {
+    const item: RoadmapItem = {
+      id: newId("r"),
+      sortOrder: nextSortOrder(roadmap),
+      ...fromRoadmapInput(input),
+    };
+    roadmap.push(item);
+    return item;
+  },
+  async updateRoadmapItem(id: string, input: RoadmapInput) {
+    const i = roadmap.findIndex((r) => r.id === id);
+    if (i === -1) throw new Error(`Roadmap item ${id} not found`);
+    const updated: RoadmapItem = {
+      ...roadmap[i],
+      ...fromRoadmapInput(input),
+      id,
+      sortOrder: roadmap[i].sortOrder,
+      milestoneId: roadmap[i].milestoneId,
+      tag: roadmap[i].tag,
+    };
+    roadmap[i] = updated;
+    return updated;
+  },
+  async deleteRoadmapItem(id: string) {
+    const i = roadmap.findIndex((r) => r.id === id);
+    if (i !== -1) roadmap.splice(i, 1);
+  },
+  async setRoadmapPlacement(placements: RoadmapPlacement[]) {
+    for (const p of placements) {
+      const item = roadmap.find((r) => r.id === p.id);
+      if (item) {
+        item.column = p.column;
+        item.sortOrder = p.sortOrder;
+      }
+    }
+  },
 };
+
+function newId(prefix: string): string {
+  return typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${prefix}-${Date.now()}`;
+}
+
+function nextSortOrder(items: { sortOrder: number }[]): number {
+  return items.reduce((m, i) => Math.max(m, i.sortOrder), 0) + 1;
+}
+
+function fromRoadmapInput(input: RoadmapInput): Omit<RoadmapItem, "id" | "sortOrder"> {
+  return {
+    projectId: input.projectId,
+    title: input.title,
+    description: input.description?.trim() || undefined,
+    column: input.column,
+    priority: input.priority,
+    status: input.status,
+    effort: input.effort,
+    targetDate: input.targetDate || undefined,
+  };
+}
 
 function fromInput(input: DecisionInput): Omit<Decision, "id"> {
   return {
