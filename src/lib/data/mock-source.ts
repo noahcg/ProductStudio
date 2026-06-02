@@ -1,3 +1,4 @@
+import type { Decision, DecisionInput } from "../domain";
 import type { DataSource } from "./source";
 import { projects } from "./projects";
 import { milestones } from "./milestones";
@@ -49,4 +50,48 @@ export const mockSource: DataSource = {
   async spendTrend() {
     return spendTrend;
   },
+
+  // ---- Writes: mutate the in-memory `decisions` array (ephemeral dev store) ----
+  async createDecision(input: DecisionInput) {
+    const decision: Decision = {
+      id:
+        typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `d-${Date.now()}`,
+      ...fromInput(input),
+    };
+    decisions.push(decision);
+    return decision;
+  },
+  async updateDecision(id: string, input: DecisionInput) {
+    const i = decisions.findIndex((d) => d.id === id);
+    if (i === -1) throw new Error(`Decision ${id} not found`);
+    const updated: Decision = {
+      ...decisions[i],
+      ...fromInput(input),
+      id,
+      // preserve legacy display-only fields the form doesn't manage
+      options: decisions[i].options,
+      chosen: decisions[i].chosen,
+    };
+    decisions[i] = updated;
+    return updated;
+  },
+  async deleteDecision(id: string) {
+    const i = decisions.findIndex((d) => d.id === id);
+    if (i !== -1) decisions.splice(i, 1);
+  },
 };
+
+function fromInput(input: DecisionInput): Omit<Decision, "id"> {
+  return {
+    projectId: input.projectId,
+    title: input.title,
+    status: input.status,
+    dateIso: input.dateIso,
+    decision: input.decision?.trim() || undefined,
+    rationale: input.rationale,
+    tradeoffs: input.tradeoffs?.trim() || undefined,
+    tags: input.tags,
+  };
+}

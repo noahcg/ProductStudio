@@ -4,6 +4,7 @@ import type {
   Task,
   RoadmapItem,
   Decision,
+  DecisionInput,
   Activity,
   Signal,
   Integration,
@@ -34,6 +35,11 @@ export interface DataSource {
   expenses(): Promise<Expense[]>;
   domains(): Promise<Domain[]>;
   spendTrend(): Promise<SpendTrendPoint[]>;
+
+  // Writes (Decisions / product memory).
+  createDecision(input: DecisionInput): Promise<Decision>;
+  updateDecision(id: string, input: DecisionInput): Promise<Decision>;
+  deleteDecision(id: string): Promise<void>;
 }
 
 /** Choose the active source: Supabase when configured, else mock. */

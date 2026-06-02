@@ -19,6 +19,7 @@ import type {
   Domain,
   Focus,
   Decision,
+  DecisionInput,
   RoadmapItem,
   Signal,
   Integration,
@@ -34,7 +35,7 @@ import type {
 } from "../domain";
 import { categoryColor } from "../constants/palette";
 import { topRecommendation } from "../recommend";
-import { withSource } from "./source";
+import { withSource, activeSource } from "./source";
 import { alerts } from "./alerts";
 import { profile, weeklySummary } from "./profile";
 
@@ -118,6 +119,20 @@ export async function getFocus(): Promise<Focus> {
 
 export async function getDecisions(): Promise<Decision[]> {
   return withSource((s) => s.decisions());
+}
+
+// Writes go to the active source only (no silent mock fallback — a failed DB
+// write should surface so the UI can show an error).
+export async function createDecision(input: DecisionInput): Promise<Decision> {
+  return activeSource().createDecision(input);
+}
+
+export async function updateDecision(id: string, input: DecisionInput): Promise<Decision> {
+  return activeSource().updateDecision(id, input);
+}
+
+export async function deleteDecision(id: string): Promise<void> {
+  return activeSource().deleteDecision(id);
 }
 
 // ---- Roadmap ----

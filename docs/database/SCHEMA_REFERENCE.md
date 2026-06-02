@@ -112,17 +112,24 @@ Aggregate root.
 | state | text | CHECK `todo\|active\|done` |
 | estimate | text NULL | e.g. `~3h` |
 
-### `decisions` ⟷ `Decision`
+### `decisions` ⟷ `Decision`  (product memory — CRUD in Phase 2.5)
 | Column | Type | Notes |
 |---|---|---|
 | id | uuid PK | |
 | project_id | uuid FK→projects NULL | cascade; null = studio-level |
 | title | text | |
 | status | text | CHECK `Decided\|Open\|Revisit` |
-| dated_at | timestamptz | domain `dateIso` |
+| dated_at | timestamptz | domain `dateIso` ≙ **decided_at** |
+| decision | text NULL | the actual call made *(added 2.5)* |
 | rationale | text | |
-| options | text[] NULL | domain `options?: string[]` |
-| chosen | text NULL | |
+| tradeoffs | text NULL | what was given up *(added 2.5)* |
+| tags | text[] NOT NULL default `{}` | free-form labels, GIN-indexed *(added 2.5)* |
+| options | text[] NULL | legacy; retained for seeded decisions' display |
+| chosen | text NULL | legacy |
+| position | integer | display order |
+
+Migration: [`20260602150000_decisions_memory.sql`](../../supabase/migrations/20260602150000_decisions_memory.sql)
+adds `decision`, `tradeoffs`, `tags` (additive; existing rows preserved).
 
 ### `activity_items` ⟷ `Activity`
 | Column | Type | Notes |

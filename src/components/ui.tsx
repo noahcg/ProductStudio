@@ -154,3 +154,39 @@ export function PageHeading({
     </div>
   );
 }
+
+/* ---------- Form controls ---------- */
+
+const fieldClass =
+  "w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm text-fg placeholder:text-faint outline-none transition-colors focus:border-accent/60";
+
+export function Input({ className, ...props }: React.ComponentProps<"input">) {
+  return <input className={cn(fieldClass, className)} {...props} />;
+}
+
+export function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {
+  return <textarea className={cn(fieldClass, "resize-y", className)} {...props} />;
+}
+
+export function Select({ className, ...props }: React.ComponentProps<"select">) {
+  return <select className={cn(fieldClass, "appearance-none", className)} {...props} />;
+}
+
+export function Field({
+  label,
+  htmlFor,
+  children,
+  className,
+}: {
+  label: string;
+  htmlFor?: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <label htmlFor={htmlFor} className={cn("block", className)}>
+      <span className="mb-1.5 block text-xs font-medium text-muted">{label}</span>
+      {children}
+    </label>
+  );
+}

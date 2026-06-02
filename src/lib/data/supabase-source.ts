@@ -5,6 +5,7 @@ import type {
   Task,
   RoadmapItem,
   Decision,
+  DecisionInput,
   Activity,
   Signal,
   Integration,
@@ -97,7 +98,10 @@ function mapDecision(r: Row): Decision {
     title: s(r.title),
     status: r.status as Decision["status"],
     dateIso: s(r.dated_at),
+    decision: opt(r.decision),
     rationale: s(r.rationale),
+    tradeoffs: opt(r.tradeoffs),
+    tags: (r.tags as string[] | null) ?? [],
     options: (r.options as string[] | null) ?? undefined,
     chosen: opt(r.chosen),
   };
@@ -235,5 +239,62 @@ export function supabaseSource(sb: SupabaseClient): DataSource {
           amount: Math.round(amount * 100) / 100,
         }));
     },
+
+    // ---- Writes (Decisions) ----
+
+    async createDecision(input: DecisionInput): Promise<Decision> {
+      const project_id = await projectUuid(sb, input.projectId);
+      const { data: maxRow } = await sb
+        .from("decisions")
+        .select("position")
+        .order("position", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const position = ((maxRow?.position as number | undefined) ?? 0) + 1;
+
+      const { data, error } = await sb
+        .from("decisions")
+        .insert({ ...payload(input), project_id, position })
+        .select("*, project:projects(slug)")
+        .single();
+      if (error) throw error;
+      return mapDecision(data as unknown as Row);
+    },
+
+    async updateDecision(id: string, input: DecisionInput): Promise<Decision> {
+      const project_id = await projectUuid(sb, input.projectId);
+      const { data, error } = await sb
+        .from("decisions")
+        .update({ ...payload(input), project_id })
+        .eq("id", id)
+        .select("*, project:projects(slug)")
+        .single();
+      if (error) throw error;
+      return mapDecision(data as unknown as Row);
+    },
+
+    async deleteDecision(id: string): Promise<void> {
+      const { error } = await sb.from("decisions").delete().eq("id", id);
+      if (error) throw error;
+    },
+  };
+}
+
+/** Resolve a project slug to its UUID (or null for studio-level decisions). */
+async function projectUuid(sb: SupabaseClient, slug?: string): Promise<string | null> {
+  if (!slug) return null;
+  const { data } = await sb.from("projects").select("id").eq("slug", slug).maybeSingle();
+  return (data?.id as string | undefined) ?? null;
+}
+
+function payload(input: DecisionInput) {
+  return {
+    title: input.title,
+    status: input.status,
+    dated_at: input.dateIso,
+    decision: input.decision?.trim() || null,
+    rationale: input.rationale,
+    tradeoffs: input.tradeoffs?.trim() || null,
+    tags: input.tags,
   };
 }
