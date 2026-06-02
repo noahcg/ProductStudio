@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { now as studioNow } from "./clock";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -13,7 +14,7 @@ export function currency(n: number) {
 }
 
 /** "2d ago", "14d ago", "2h ago", "Yesterday" style relative labels. */
-export function relativeTime(iso: string, now = new Date()): string {
+export function relativeTime(iso: string, now = studioNow()): string {
   const then = new Date(iso).getTime();
   const diffMs = now.getTime() - then;
   const mins = Math.round(diffMs / 60000);
@@ -29,7 +30,7 @@ export function relativeTime(iso: string, now = new Date()): string {
   return `${months}mo ago`;
 }
 
-export function daysUntil(iso: string, now = new Date()): number {
+export function daysUntil(iso: string, now = studioNow()): number {
   const target = new Date(iso).getTime();
   return Math.ceil((target - now.getTime()) / 86_400_000);
 }

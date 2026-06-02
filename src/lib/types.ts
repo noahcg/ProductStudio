@@ -66,6 +66,12 @@ export interface Alert {
   title: string;
   detail: string;
   meta?: string;
+  /**
+   * Structured numeric metric backing this alert (e.g. days until a domain
+   * renews). Lets logic read a number instead of regex-parsing `meta`
+   * (CURRENT_STATE §9.7).
+   */
+  metricDays?: number;
   cta: string;
 }
 
@@ -73,6 +79,28 @@ export interface SpendCategory {
   label: string;
   amount: number;
   color: string;
+}
+
+export type SpendCategoryName = "Hosting" | "AI Tools" | "Domains";
+
+export interface Expense {
+  id: string;
+  service: string;
+  category: SpendCategoryName;
+  amount: number;
+  projectId?: string;
+  integration?: Integration["key"];
+}
+
+export interface SpendTrendPoint {
+  month: string;
+  amount: number;
+}
+
+/** Aggregated spend for a period — what the Money/Studio panels render. */
+export interface Spend {
+  categories: SpendCategory[];
+  total: number;
 }
 
 export interface Integration {
@@ -104,4 +132,25 @@ export interface Decision {
   rationale: string;
   options?: string[];
   chosen?: string;
+}
+
+/** The single studio owner (no multi-user in Phase 2). */
+export interface Profile {
+  name: string;
+  fullName: string;
+  unreadNotifications: number;
+}
+
+/** Headline counters on the Studio stat row. */
+export interface StudioStats {
+  projects: number;
+  active: number;
+  needsAttention: number;
+  monthlySpend: number;
+}
+
+/** "You shipped N updates across M products this week." */
+export interface WeeklySummary {
+  updates: number;
+  products: number;
 }

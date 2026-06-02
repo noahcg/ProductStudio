@@ -3,21 +3,32 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Check, Sparkles, ArrowRight, CircleDot } from "lucide-react";
-import { focusForProject, getProject } from "@/lib/data";
-import { recommendations } from "@/lib/recommend";
-import type { FocusTask } from "@/lib/types";
+import { focusForProject } from "@/lib/data/focus";
+import { recommendations, type Recommendation } from "@/lib/recommend";
+import type { FocusTask, Project, Alert, Focus } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Card, Badge, PageHeading, Button } from "@/components/ui";
+import { Card, Badge, PageHeading } from "@/components/ui";
 import { ProgressRing } from "@/components/donut";
 import { projectIcons, accentStyles } from "@/components/icons";
 
-export function FocusBoard() {
+export function FocusBoard({
+  projects,
+  alerts,
+  baseFocus: initialFocus,
+}: {
+  projects: Project[];
+  alerts: Alert[];
+  baseFocus: Focus;
+}) {
   const params = useSearchParams();
-  const recs = useMemo(() => recommendations(), []);
+  const recs = useMemo(() => recommendations(projects, alerts), [projects, alerts]);
   const initial = params.get("project") ?? recs[0].project.id;
 
   const [projectId, setProjectId] = useState(initial);
-  const baseFocus = useMemo(() => focusForProject(projectId), [projectId]);
+  const baseFocus = useMemo(
+    () => focusForProject(projectId, projects, initialFocus),
+    [projectId, projects, initialFocus]
+  );
 
   // Local task completion state, keyed so switching projects resets cleanly.
   const [tasks, setTasks] = useState<FocusTask[]>(baseFocus.tasks);
@@ -27,7 +38,7 @@ export function FocusBoard() {
     setTasks(baseFocus.tasks);
   }
 
-  const project = getProject(projectId)!;
+  const project = projects.find((p) => p.id === projectId)!;
   const Icon = projectIcons[project.icon];
   const accent = accentStyles[project.accent];
 
@@ -159,7 +170,7 @@ export function FocusBoard() {
           </ul>
 
           <div className="mt-auto pt-4">
-            <RecReasons projectId={projectId} />
+            <RecReasons rec={recs.find((r) => r.project.id === projectId)} />
           </div>
         </Card>
       </div>
@@ -167,8 +178,7 @@ export function FocusBoard() {
   );
 }
 
-function RecReasons({ projectId }: { projectId: string }) {
-  const rec = recommendations().find((r) => r.project.id === projectId);
+function RecReasons({ rec }: { rec?: Recommendation }) {
   if (!rec || rec.reasons.length === 0) return null;
   return (
     <div className="rounded-xl border border-line bg-surface-2/40 p-3.5">

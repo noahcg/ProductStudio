@@ -1,15 +1,17 @@
 import { Box, Activity, AlertTriangle, CalendarDays } from "lucide-react";
-import { studioStats } from "@/lib/data";
+import { getStudioStats } from "@/lib/data";
 import { currency } from "@/lib/utils";
 
-const items = [
-  { icon: Box, value: String(studioStats.projects), label: "Projects", color: "text-accent" },
-  { icon: Activity, value: String(studioStats.active), label: "Active", color: "text-success" },
-  { icon: AlertTriangle, value: String(studioStats.needsAttention), label: "Needs Attention", color: "text-warning" },
-  { icon: CalendarDays, value: currency(studioStats.monthlySpend), label: "Monthly Spend", color: "text-info" },
-];
+export async function StatRow() {
+  const stats = await getStudioStats();
 
-export function StatRow() {
+  const items = [
+    { icon: Box, value: String(stats.projects), label: "Projects", color: "text-accent" },
+    { icon: Activity, value: String(stats.active), label: "Active", color: "text-success" },
+    { icon: AlertTriangle, value: String(stats.needsAttention), label: "Needs Attention", color: "text-warning" },
+    { icon: CalendarDays, value: currency(stats.monthlySpend), label: "Monthly Spend", color: "text-info" },
+  ];
+
   return (
     <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
       {items.map(({ icon: Icon, value, label, color }) => (

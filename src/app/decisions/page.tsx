@@ -1,5 +1,5 @@
 import { CheckCircle2, CircleHelp, RotateCcw } from "lucide-react";
-import { decisions, getProject } from "@/lib/data";
+import { getDecisions, getProjectMap } from "@/lib/data";
 import type { DecisionStatus } from "@/lib/types";
 import { Card, Badge, PageHeading } from "@/components/ui";
 import { cn } from "@/lib/utils";
@@ -13,7 +13,8 @@ const statusMeta: Record<
   Revisit: { tone: "content", icon: RotateCcw },
 };
 
-export default function DecisionsPage() {
+export default async function DecisionsPage() {
+  const [decisions, projectMap] = await Promise.all([getDecisions(), getProjectMap()]);
   const open = decisions.filter((d) => d.status !== "Decided").length;
 
   return (
@@ -31,7 +32,7 @@ export default function DecisionsPage() {
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {decisions.map((d) => {
-          const project = getProject(d.projectId);
+          const project = d.projectId ? projectMap.get(d.projectId) : undefined;
           const meta = statusMeta[d.status];
           const Icon = meta.icon;
           return (
@@ -66,7 +67,11 @@ export default function DecisionsPage() {
               {d.options && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {d.options.map((opt) => {
-                    const chosen = opt === d.chosen;
+                    // Only a Decided decision has a winner and "rejected" options;
+                    // for Open/Revisit the options are live candidates, not struck out.
+                    const decided = d.status === "Decided";
+                    const chosen = decided && opt === d.chosen;
+                    const rejected = decided && !chosen;
                     return (
                       <span
                         key={opt}
@@ -74,7 +79,9 @@ export default function DecisionsPage() {
                           "rounded-lg px-2.5 py-1 text-xs ring-1 ring-inset",
                           chosen
                             ? "bg-success/15 text-success ring-success/30"
-                            : "bg-surface-2 text-muted ring-line line-through decoration-faint/60"
+                            : rejected
+                              ? "bg-surface-2 text-muted ring-line line-through decoration-faint/60"
+                              : "bg-surface-2 text-muted ring-line"
                         )}
                       >
                         {opt}

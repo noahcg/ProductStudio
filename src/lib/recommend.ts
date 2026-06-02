@@ -1,6 +1,5 @@
-import { projects, alerts, NOW } from "./data";
-import type { Project } from "./types";
-import { daysUntil } from "./utils";
+import type { Project, Alert } from "./types";
+import { now as studioNow } from "./clock";
 
 export interface Recommendation {
   project: Project;
@@ -15,8 +14,15 @@ export interface Recommendation {
  * points for momentum signals (close to a milestone, has blockers, is the
  * active focus) and loses points for staleness. Reasons are surfaced so the
  * recommendation is explainable rather than a black box.
+ *
+ * Pure: the portfolio and alerts are passed in, so the same logic runs against
+ * mock data today and database-backed data later (Phase 8) without changes.
  */
-export function recommendations(now = NOW): Recommendation[] {
+export function recommendations(
+  projects: Project[],
+  alerts: Alert[],
+  now: Date = studioNow()
+): Recommendation[] {
   return projects
     .map((project) => {
       const reasons: string[] = [];
@@ -60,15 +66,15 @@ export function recommendations(now = NOW): Recommendation[] {
         reasons.push(...projectAlerts.map((a) => a.detail));
       }
 
-      // Domain expiring soon is time-sensitive.
+      // Domain expiring soon is time-sensitive. Reads the structured
+      // `metricDays` rather than parsing the display copy.
       if (project.domain) {
-        const dom = alerts.find((a) => a.kind === "domain" && a.detail.includes(project.domain!));
-        if (dom?.meta) {
-          const days = parseInt(dom.meta.replace(/\D/g, ""), 10);
-          if (days && days < 45) {
-            score += 8;
-            reasons.push(`Domain renews in ${days} days`);
-          }
+        const dom = alerts.find(
+          (a) => a.kind === "domain" && a.detail.includes(project.domain!)
+        );
+        if (dom?.metricDays != null && dom.metricDays < 45) {
+          score += 8;
+          reasons.push(`Domain renews in ${dom.metricDays} days`);
         }
       }
 
@@ -77,8 +83,6 @@ export function recommendations(now = NOW): Recommendation[] {
     .sort((a, b) => b.score - a.score);
 }
 
-export function topRecommendation(now = NOW) {
-  return recommendations(now)[0];
+export function topRecommendation(projects: Project[], alerts: Alert[], now: Date = studioNow()) {
+  return recommendations(projects, alerts, now)[0];
 }
-
-export { daysUntil };

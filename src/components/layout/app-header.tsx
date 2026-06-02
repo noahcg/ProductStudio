@@ -16,6 +16,14 @@ const NAV = [
   { href: "/money", label: "Money" },
 ];
 
+/**
+ * Live wall clock for the header. Renders nothing until mounted so the
+ * server/client markup matches, then ticks once a minute.
+ *
+ * Note: this is real time, deliberately independent of the studio data anchor
+ * in `lib/clock.ts` (which keeps the mock "2d ago" labels stable). The header
+ * shows "now"; the dashboard data is demo data fixed to June 2026.
+ */
 function useClock() {
   const [now, setNow] = useState<Date | null>(null);
   useEffect(() => {
@@ -26,7 +34,13 @@ function useClock() {
   return now;
 }
 
-export function AppHeader() {
+export function AppHeader({
+  brand,
+  notifications,
+}: {
+  brand: string;
+  notifications: number;
+}) {
   const pathname = usePathname();
   const now = useClock();
 
@@ -35,7 +49,7 @@ export function AppHeader() {
       <div className="mx-auto flex h-[68px] w-full max-w-[1400px] items-center gap-6 px-6">
         {/* Logo */}
         <Link href="/" className="flex flex-col leading-none">
-          <span className="font-script text-2xl text-fg">Noah Glushien</span>
+          <span className="font-script text-2xl text-fg">{brand}</span>
           <span className="text-[10px] font-medium uppercase tracking-[0.32em] text-faint">
             Product Studio
           </span>
@@ -70,7 +84,7 @@ export function AppHeader() {
             <div className="text-sm font-medium text-fg">
               {now
                 ? now.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
-                : " "}
+                : " "}
             </div>
             <div className="text-xs text-muted">
               {now
@@ -79,7 +93,7 @@ export function AppHeader() {
                     hour: "numeric",
                     minute: "2-digit",
                   })
-                : " "}
+                : " "}
             </div>
           </div>
           <ThemeToggle />
@@ -89,7 +103,7 @@ export function AppHeader() {
           >
             <Bell className="h-[18px] w-[18px]" />
             <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-accent text-[10px] font-semibold text-accent-fg">
-              3
+              {notifications}
             </span>
           </button>
         </div>

@@ -1,5 +1,5 @@
 import { ArrowRight, Star } from "lucide-react";
-import { projects } from "@/lib/data";
+import { getProjects, getWeeklySummary, getProfile } from "@/lib/data";
 import { LinkButton } from "@/components/ui";
 import { StatRow } from "@/components/studio/stat-row";
 import { ProjectCard } from "@/components/studio/project-card";
@@ -10,12 +10,18 @@ import { RecentActivity } from "@/components/studio/recent-activity";
 import { MonthlySpend } from "@/components/studio/monthly-spend";
 import { Greeting } from "@/components/studio/greeting";
 
-export default function StudioPage() {
+export default async function StudioPage() {
+  const [projects, weekly, profile] = await Promise.all([
+    getProjects(),
+    getWeeklySummary(),
+    getProfile(),
+  ]);
+
   return (
     <div className="space-y-6">
       {/* Greeting + stats */}
       <div className="flex flex-wrap items-start justify-between gap-6">
-        <Greeting />
+        <Greeting name={profile.name} />
         <StatRow />
       </div>
 
@@ -56,7 +62,7 @@ export default function StudioPage() {
         <div className="flex items-center gap-3">
           <Star className="h-5 w-5 fill-warning/20 text-warning" />
           <p className="text-sm text-fg">
-            You shipped <strong>3 updates</strong> across 2 products this week. Keep the momentum going.
+            You shipped <strong>{weekly.updates} updates</strong> across {weekly.products} products this week. Keep the momentum going.
           </p>
         </div>
         <LinkButton href="/roadmaps" variant="subtle" className="text-sm">

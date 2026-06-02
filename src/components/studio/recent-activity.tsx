@@ -1,11 +1,12 @@
 import { Check, ArrowRight } from "lucide-react";
-import { activity, getProject } from "@/lib/data";
+import { getActivity, getProjectMap } from "@/lib/data";
 import { Card, CardHeader, LinkButton } from "@/components/ui";
 import { activityIcons } from "@/components/icons";
 import { relativeTime } from "@/lib/utils";
-import { NOW } from "@/lib/data";
 
-export function RecentActivity() {
+export async function RecentActivity() {
+  const [activity, projectMap] = await Promise.all([getActivity(), getProjectMap()]);
+
   return (
     <Card className="flex flex-col">
       <CardHeader
@@ -19,7 +20,7 @@ export function RecentActivity() {
       <ul className="px-5 py-3">
         {activity.map((item) => {
           const Icon = activityIcons[item.kind];
-          const project = getProject(item.projectId);
+          const project = item.projectId ? projectMap.get(item.projectId) : undefined;
           return (
             <li key={item.id} className="flex gap-3 py-2.5">
               <div className="flex flex-col items-center">
@@ -33,7 +34,7 @@ export function RecentActivity() {
                   {item.ok && <Check className="h-3.5 w-3.5 text-success" strokeWidth={3} />}
                 </div>
                 <div className="text-xs text-muted">
-                  {project ? project.name : "System"} · {relativeTime(item.whenIso, NOW)}
+                  {project ? project.name : "System"} · {relativeTime(item.whenIso)}
                 </div>
               </div>
             </li>

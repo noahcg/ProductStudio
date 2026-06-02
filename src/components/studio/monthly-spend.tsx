@@ -1,10 +1,12 @@
 import { ArrowRight } from "lucide-react";
-import { spend, spendTotal } from "@/lib/data";
+import { getSpend } from "@/lib/data";
 import { Card, LinkButton } from "@/components/ui";
 import { Donut } from "@/components/donut";
 import { currency } from "@/lib/utils";
 
-export function MonthlySpend() {
+export async function MonthlySpend() {
+  const { categories: spend, total: spendTotal } = await getSpend();
+
   return (
     <Card className="flex h-full flex-col p-5">
       <div className="flex items-center justify-between">

@@ -1,11 +1,17 @@
 import { Check, AlertTriangle, ArrowRight } from "lucide-react";
-import { signals, integrations, activity, alerts, getProject } from "@/lib/data";
-import { NOW } from "@/lib/data";
+import { getSignals, getIntegrations, getActivity, getAlerts, getProjectMap } from "@/lib/data";
 import { Card, CardHeader, Badge, PageHeading, StatusDot, LinkButton } from "@/components/ui";
 import { integrationIcons, activityIcons } from "@/components/icons";
 import { relativeTime, cn } from "@/lib/utils";
 
-export default function SignalsPage() {
+export default async function SignalsPage() {
+  const [signals, integrations, activity, alerts, projectMap] = await Promise.all([
+    getSignals(),
+    getIntegrations(),
+    getActivity(),
+    getAlerts(),
+    getProjectMap(),
+  ]);
   const allOk = signals.every((s) => s.level === "ok");
   const warnings = signals.filter((s) => s.level !== "ok").length;
 
@@ -67,7 +73,7 @@ export default function SignalsPage() {
             <ul className="px-5 py-3">
               {activity.map((item) => {
                 const Icon = activityIcons[item.kind];
-                const project = getProject(item.projectId);
+                const project = item.projectId ? projectMap.get(item.projectId) : undefined;
                 return (
                   <li key={item.id} className="flex gap-3 py-2.5">
                     <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-surface-2 text-muted">
@@ -79,7 +85,7 @@ export default function SignalsPage() {
                         {item.ok && <Check className="h-3.5 w-3.5 text-success" strokeWidth={3} />}
                       </div>
                       <div className="text-xs text-muted">
-                        {project ? project.name : "System"} · {relativeTime(item.whenIso, NOW)}
+                        {project ? project.name : "System"} · {relativeTime(item.whenIso)}
                       </div>
                     </div>
                   </li>

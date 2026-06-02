@@ -1,10 +1,12 @@
 import { ArrowRight, Globe } from "lucide-react";
-import { alerts, getProject } from "@/lib/data";
+import { getAlerts, getProjectMap } from "@/lib/data";
 import { Card, CardHeader, LinkButton } from "@/components/ui";
 import { projectIcons, accentStyles } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
-export function NeedsAttention() {
+export async function NeedsAttention() {
+  const [alerts, projectMap] = await Promise.all([getAlerts(), getProjectMap()]);
+
   return (
     <Card className="flex flex-col">
       <CardHeader
@@ -19,7 +21,7 @@ export function NeedsAttention() {
       />
       <div className="space-y-3 p-5 pt-4">
         {alerts.map((alert) => {
-          const project = getProject(alert.projectId);
+          const project = alert.projectId ? projectMap.get(alert.projectId) : undefined;
           const Icon = project ? projectIcons[project.icon] : Globe;
           const accent = project ? accentStyles[project.accent] : null;
           return (

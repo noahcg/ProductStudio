@@ -2,7 +2,6 @@ import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 import type { Project } from "@/lib/types";
 import { cn, relativeTime } from "@/lib/utils";
-import { NOW } from "@/lib/data";
 import { projectIcons, accentStyles } from "@/components/icons";
 import { Badge } from "@/components/ui";
 
@@ -61,7 +60,7 @@ export function ProjectCard({ project }: { project: Project }) {
             label={project.blockers === 1 ? "Blocker" : "Blockers"}
             warn={project.blockers > 0}
           />
-          <Stat value={relativeTime(project.lastActivityIso, NOW)} label="Last activity" small />
+          <Stat value={relativeTime(project.lastActivityIso)} label="Last activity" small />
         </div>
       </div>
     </Link>

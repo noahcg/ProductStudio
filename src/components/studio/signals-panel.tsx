@@ -1,10 +1,11 @@
 import { Check, AlertTriangle, ArrowRight } from "lucide-react";
-import { signals } from "@/lib/data";
+import { getSignals } from "@/lib/data";
 import { Card, CardHeader, LinkButton, StatusDot } from "@/components/ui";
 import { integrationIcons } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
-export function SignalsPanel() {
+export async function SignalsPanel() {
+  const signals = await getSignals();
   const allOk = signals.every((s) => s.level === "ok");
 
   return (

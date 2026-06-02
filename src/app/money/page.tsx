@@ -1,11 +1,14 @@
 import { ChevronUp, Globe } from "lucide-react";
-import { spend, spendTotal, expenses, spendTrend, projects, getProject } from "@/lib/data";
+import { getSpend, getExpenses, getSpendTrend, getProjects, getProjectMap } from "@/lib/data";
 import { Card, CardHeader, Badge, PageHeading } from "@/components/ui";
 import { Donut } from "@/components/donut";
 import { integrationIcons, projectIcons, accentStyles } from "@/components/icons";
 import { currency, cn } from "@/lib/utils";
 
-export default function MoneyPage() {
+export default async function MoneyPage() {
+  const [{ categories: spend, total: spendTotal }, expenses, spendTrend, projects, projectMap] =
+    await Promise.all([getSpend(), getExpenses(), getSpendTrend(), getProjects(), getProjectMap()]);
+
   const prev = spendTrend[spendTrend.length - 2].amount;
   const delta = ((spendTotal - prev) / prev) * 100;
   const maxTrend = Math.max(...spendTrend.map((t) => t.amount));
@@ -110,7 +113,7 @@ export default function MoneyPage() {
             <tbody>
               {expenses.map((e) => {
                 const Icon = e.integration ? integrationIcons[e.integration] : Globe;
-                const project = getProject(e.projectId);
+                const project = e.projectId ? projectMap.get(e.projectId) : undefined;
                 return (
                   <tr key={e.id} className="border-b border-line/60 last:border-0">
                     <td className="px-5 py-3">

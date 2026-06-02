@@ -1,10 +1,11 @@
 import { Check, ArrowRight } from "lucide-react";
-import { focus } from "@/lib/data";
+import { getFocus } from "@/lib/data";
 import { Card, Badge, LinkButton } from "@/components/ui";
 import { ProgressRing } from "@/components/donut";
 import { cn } from "@/lib/utils";
 
-export function CurrentFocus() {
+export async function CurrentFocus() {
+  const focus = await getFocus();
   const remaining = focus.tasks.filter((t) => t.state !== "done").length;
   const [project, milestone] = focus.title.split(" — ");
 

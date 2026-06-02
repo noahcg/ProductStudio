@@ -1,4 +1,4 @@
-import { roadmap, getProject } from "@/lib/data";
+import { getRoadmap, getProjectMap } from "@/lib/data";
 import type { RoadmapColumn } from "@/lib/types";
 import { Card, Badge, PageHeading } from "@/components/ui";
 import { projectIcons, accentStyles } from "@/components/icons";
@@ -12,7 +12,9 @@ const COLUMNS: { key: RoadmapColumn; title: string; hint: string; dot: string }[
 
 const effortLabel = { S: "Small", M: "Medium", L: "Large" };
 
-export default function RoadmapsPage() {
+export default async function RoadmapsPage() {
+  const [roadmap, projectMap] = await Promise.all([getRoadmap(), getProjectMap()]);
+
   return (
     <div>
       <PageHeading
@@ -34,7 +36,7 @@ export default function RoadmapsPage() {
 
               <div className="flex flex-col gap-3">
                 {items.map((item) => {
-                  const project = getProject(item.projectId)!;
+                  const project = projectMap.get(item.projectId)!;
                   const Icon = projectIcons[project.icon];
                   const accent = accentStyles[project.accent];
                   return (
