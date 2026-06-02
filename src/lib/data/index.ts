@@ -15,12 +15,15 @@
  */
 import type {
   Project,
+  Milestone,
+  Task,
+  Domain,
   Focus,
   Decision,
   RoadmapItem,
   Signal,
   Integration,
-  ActivityItem,
+  Activity,
   Alert,
   Expense,
   SpendTrendPoint,
@@ -28,9 +31,12 @@ import type {
   Profile,
   WeeklySummary,
   StudioStats,
-} from "../types";
+} from "../domain";
 
 import { projects } from "./projects";
+import { milestones } from "./milestones";
+import { tasks } from "./tasks";
+import { domains } from "./domains";
 import { focus } from "./focus";
 import { decisions } from "./decisions";
 import { roadmap } from "./roadmap";
@@ -55,7 +61,33 @@ export async function getProjectMap(): Promise<Map<string, Project>> {
   return new Map(projects.map((p) => [p.id, p]));
 }
 
-// ---- Focus ----
+// ---- Milestones (owned by projects) ----
+
+export async function getMilestones(): Promise<Milestone[]> {
+  return milestones;
+}
+
+export async function getMilestonesForProject(projectId: string): Promise<Milestone[]> {
+  return milestones.filter((m) => m.projectId === projectId);
+}
+
+// ---- Tasks (owned by projects / milestones) ----
+
+export async function getTasks(): Promise<Task[]> {
+  return tasks;
+}
+
+export async function getTasksForMilestone(milestoneId: string): Promise<Task[]> {
+  return tasks.filter((t) => t.milestoneId === milestoneId);
+}
+
+// ---- Domains (owned by projects) ----
+
+export async function getDomains(): Promise<Domain[]> {
+  return domains;
+}
+
+// ---- Focus (derived view: a project's active milestone + its tasks) ----
 
 export async function getFocus(): Promise<Focus> {
   return focus;
@@ -83,7 +115,7 @@ export async function getIntegrations(): Promise<Integration[]> {
   return integrations;
 }
 
-export async function getActivity(): Promise<ActivityItem[]> {
+export async function getActivity(): Promise<Activity[]> {
   return activity;
 }
 

@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Check, Sparkles, ArrowRight, CircleDot } from "lucide-react";
 import { focusForProject } from "@/lib/data/focus";
 import { recommendations, type Recommendation } from "@/lib/recommend";
-import type { FocusTask, Project, Alert, Focus } from "@/lib/types";
+import type { Task, Project, Alert, Focus } from "@/lib/domain";
 import { cn } from "@/lib/utils";
 import { Card, Badge, PageHeading } from "@/components/ui";
 import { ProgressRing } from "@/components/donut";
@@ -31,7 +31,7 @@ export function FocusBoard({
   );
 
   // Local task completion state, keyed so switching projects resets cleanly.
-  const [tasks, setTasks] = useState<FocusTask[]>(baseFocus.tasks);
+  const [tasks, setTasks] = useState<Task[]>(baseFocus.tasks);
   const [activeProject, setActiveProject] = useState(projectId);
   if (activeProject !== projectId) {
     setActiveProject(projectId);

@@ -1,4 +1,4 @@
-import type { Alert } from "../types";
+import type { Alert } from "../domain";
 
 export const alerts: Alert[] = [
   {

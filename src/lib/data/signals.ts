@@ -1,12 +1,12 @@
-import type { Signal, Integration } from "../types";
+import type { Signal, Integration } from "../domain";
 
 export const integrations: Integration[] = [
-  { key: "vercel", name: "Vercel", connected: true, detail: "All deployments successful" },
-  { key: "supabase", name: "Supabase", connected: true, detail: "Storage 82%" },
-  { key: "github", name: "GitHub", connected: true, detail: "All repositories synced" },
-  { key: "cloudflare", name: "Cloudflare", connected: true, detail: "All domains healthy" },
-  { key: "openai", name: "OpenAI API", connected: true, detail: "Normal usage" },
-  { key: "anthropic", name: "Anthropic API", connected: true, detail: "Normal usage" },
+  { key: "vercel", name: "Vercel", category: "hosting", connected: true, detail: "All deployments successful" },
+  { key: "supabase", name: "Supabase", category: "database", connected: true, detail: "Storage 82%" },
+  { key: "github", name: "GitHub", category: "git", connected: true, detail: "All repositories synced" },
+  { key: "cloudflare", name: "Cloudflare", category: "domains", connected: true, detail: "All domains healthy" },
+  { key: "openai", name: "OpenAI API", category: "ai", connected: true, detail: "Normal usage" },
+  { key: "anthropic", name: "Anthropic API", category: "ai", connected: true, detail: "Normal usage" },
 ];
 
 export const signals: Signal[] = [

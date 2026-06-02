@@ -1,4 +1,4 @@
-import type { Project } from "../types";
+import type { Project } from "../domain";
 
 /** Mock portfolio. Phase 2.1: extracted from the former monolithic data.ts. */
 export const projects: Project[] = [

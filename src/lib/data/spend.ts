@@ -1,4 +1,4 @@
-import type { SpendCategory, Expense, SpendTrendPoint } from "../types";
+import type { SpendCategory, Expense, SpendTrendPoint } from "../domain";
 import { categoryColor } from "../constants/palette";
 
 export const spendCategories: SpendCategory[] = [

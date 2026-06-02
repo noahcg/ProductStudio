@@ -1,4 +1,4 @@
-import type { Profile, WeeklySummary } from "../types";
+import type { Profile, WeeklySummary } from "../domain";
 
 /** The single studio owner. (No multi-user in Phase 2.) */
 export const profile: Profile = {
