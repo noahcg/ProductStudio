@@ -1,0 +1,97 @@
+import Link from "next/link";
+import { AlertTriangle } from "lucide-react";
+import type { Project } from "@/lib/types";
+import { cn, relativeTime } from "@/lib/utils";
+import { NOW } from "@/lib/data";
+import { projectIcons, accentStyles } from "@/components/icons";
+import { Badge } from "@/components/ui";
+
+const statusTone = {
+  Active: "active",
+  Planning: "planning",
+  Content: "content",
+  Paused: "neutral",
+  Shipped: "high",
+} as const;
+
+export function ProjectCard({ project }: { project: Project }) {
+  const Icon = projectIcons[project.icon];
+  const accent = accentStyles[project.accent];
+
+  return (
+    <Link
+      href={`/focus?project=${project.id}`}
+      className="group flex flex-col overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface/70 transition-colors hover:border-line-strong"
+    >
+      {/* Header / image area */}
+      <div className={cn("relative h-[92px] bg-gradient-to-br", accent.gradient)}>
+        <div className="absolute right-3 top-3">
+          <Badge tone={statusTone[project.status]}>{project.status}</Badge>
+        </div>
+        <div
+          className={cn(
+            "absolute -bottom-5 left-4 grid h-12 w-12 place-items-center rounded-full bg-surface-2 ring-2",
+            accent.ring
+          )}
+        >
+          <Icon className="h-6 w-6 text-fg" />
+        </div>
+      </div>
+
+      <div className="flex flex-1 flex-col px-4 pb-4 pt-7">
+        <h3 className="text-[15px] font-semibold tracking-tight text-fg">{project.name}</h3>
+        <p className="text-xs text-muted">{project.tagline}</p>
+
+        <div className="mt-3">
+          <p className="mb-1.5 text-xs font-medium text-fg">
+            {project.progress}% <span className="text-muted">to next milestone</span>
+          </p>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-line">
+            <div
+              className="h-full rounded-full transition-[width] duration-500"
+              style={{ width: `${project.progress}%`, background: accent.bar }}
+            />
+          </div>
+        </div>
+
+        <div className="mt-auto grid grid-cols-3 gap-2 pt-4">
+          <Stat value={String(project.openTasks)} label="Tasks" />
+          <Stat
+            value={String(project.blockers)}
+            label={project.blockers === 1 ? "Blocker" : "Blockers"}
+            warn={project.blockers > 0}
+          />
+          <Stat value={relativeTime(project.lastActivityIso, NOW)} label="Last activity" small />
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function Stat({
+  value,
+  label,
+  warn,
+  small,
+}: {
+  value: string;
+  label: string;
+  warn?: boolean;
+  small?: boolean;
+}) {
+  return (
+    <div>
+      <div
+        className={cn(
+          "flex items-center gap-1 font-semibold text-fg",
+          small ? "text-xs" : "text-base",
+          warn && "text-warning"
+        )}
+      >
+        {warn && <AlertTriangle className="h-3 w-3" />}
+        {value}
+      </div>
+      <div className="text-[11px] text-faint">{label}</div>
+    </div>
+  );
+}

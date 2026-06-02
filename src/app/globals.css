@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+/*
+  Product Studio — dark premium design system.
+  Tokens are defined as CSS variables (dark default, light override under .light)
+  and exposed to Tailwind via @theme inline so they become utilities like
+  bg-surface, text-muted, border-line, text-accent, etc.
+*/
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-script: var(--font-script), cursive;
+
+  --radius-card: 16px;
+}
+
+:root {
+  /* Dark (default) */
+  --bg: #070a12;
+  --bg-elevated: #0b0f1a;
+  --surface: #0f1420;
+  --surface-2: #141a28;
+  --line: #1c2435;
+  --line-strong: #2a3346;
+
+  --fg: #e7eaf0;
+  --muted: #8b93a7;
+  --faint: #5d6577;
+
+  --accent: #7c5cff;
+  --accent-fg: #ffffff;
+  --success: #2dd4a7;
+  --warning: #f5a623;
+  --danger: #f0556e;
+  --info: #4f8cff;
+}
+
+.light {
+  --bg: #f4f5f8;
+  --bg-elevated: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f7f8fb;
+  --line: #e4e7ee;
+  --line-strong: #d4d9e3;
+
+  --fg: #161a22;
+  --muted: #5d6577;
+  --faint: #8b93a7;
+
+  --accent: #6d49f5;
+  --accent-fg: #ffffff;
+  --success: #12a37c;
+  --warning: #c87d10;
+  --danger: #d83a55;
+  --info: #2f6fe0;
+}
+
+* {
+  border-color: var(--line);
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Subtle ambient gradient backdrop for the premium feel */
+.studio-backdrop {
+  background:
+    radial-gradient(900px 500px at 12% -8%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 60%),
+    radial-gradient(800px 500px at 92% -10%, color-mix(in srgb, var(--info) 10%, transparent), transparent 55%),
+    var(--bg);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+/* Thin custom scrollbars */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 999px;
+  border: 2px solid var(--bg);
+}
+::-webkit-scrollbar-track { background: transparent; }
