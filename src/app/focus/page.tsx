@@ -1,19 +1,19 @@
 import { Suspense } from "react";
 import { FocusBoard } from "@/components/focus/focus-board";
-import { getProjects, getAlerts, getFocus } from "@/lib/data";
+import { getProjects, getFocus, getFocusResult } from "@/lib/data";
 
 export default async function FocusPage() {
-  // Server fetches through the data layer; the interactive board is a client
-  // island that receives everything as props (no data-layer import client-side).
-  const [projects, alerts, baseFocus] = await Promise.all([
+  // Focus Engine ranking + current focus are computed server-side; the
+  // interactive board receives them as props.
+  const [projects, baseFocus, result] = await Promise.all([
     getProjects(),
-    getAlerts(),
     getFocus(),
+    getFocusResult(),
   ]);
 
   return (
     <Suspense fallback={<div className="text-sm text-muted">Loading focus…</div>}>
-      <FocusBoard projects={projects} alerts={alerts} baseFocus={baseFocus} />
+      <FocusBoard projects={projects} ranked={result.ranked} baseFocus={baseFocus} />
     </Suspense>
   );
 }

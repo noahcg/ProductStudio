@@ -36,8 +36,9 @@ import type {
   StudioStats,
 } from "../domain";
 import { categoryColor } from "../constants/palette";
-import { topRecommendation } from "../recommend";
+import { computeFocus, type FocusInput, type FocusResult } from "../focus/engine";
 import { withSource, activeSource } from "./source";
+import type { DataSource } from "./source";
 import { alerts } from "./alerts";
 import { profile, weeklySummary } from "./profile";
 
@@ -96,23 +97,39 @@ const EMPTY_FOCUS: Focus = {
   tasks: [],
 };
 
+/** Gather every input the Focus Engine needs from a source. */
+async function focusInput(s: DataSource): Promise<FocusInput> {
+  const [projects, milestones, roadmap, tasks, decisions, activity, signals] = await Promise.all([
+    s.projects(),
+    s.milestones(),
+    s.roadmap(),
+    s.tasks(),
+    s.decisions(),
+    s.activity(),
+    s.signals(),
+  ]);
+  return { projects, milestones, roadmap, tasks, decisions, activity, signals };
+}
+
+/** Full Focus Engine result — current focus, ranking, scores, reasons. */
+export async function getFocusResult(): Promise<FocusResult> {
+  return withSource(async (s) => computeFocus(await focusInput(s)));
+}
+
+/** The Current Focus, shaped as the Focus view the Studio/Focus panels render. */
 export async function getFocus(): Promise<Focus> {
   return withSource(async (s) => {
-    const [projects, milestones, tasks] = await Promise.all([s.projects(), s.milestones(), s.tasks()]);
-    const top = topRecommendation(projects, alerts)?.project;
-    if (!top) return EMPTY_FOCUS;
-
-    const milestone = milestones.find((m) => m.projectId === top.id);
-    if (!milestone) {
-      return { ...EMPTY_FOCUS, projectId: top.id, title: top.name };
-    }
+    const input = await focusInput(s);
+    const cur = computeFocus(input).current;
+    if (!cur) return EMPTY_FOCUS;
+    if (!cur.milestone) return { ...EMPTY_FOCUS, projectId: cur.project.id, title: cur.project.name };
     return {
-      projectId: top.id,
-      title: `${top.name} — ${milestone.title}`,
-      priority: milestone.priority,
-      summary: milestone.summary,
-      progress: milestone.progress,
-      tasks: tasks.filter((t) => t.milestoneId === milestone.id),
+      projectId: cur.project.id,
+      title: `${cur.project.name} — ${cur.milestone.title}`,
+      priority: cur.milestone.priority,
+      summary: cur.milestone.summary,
+      progress: cur.milestone.progress,
+      tasks: input.tasks.filter((t) => t.milestoneId === cur.milestone!.id),
     };
   });
 }

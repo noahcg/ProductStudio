@@ -4,8 +4,8 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Check, Sparkles, ArrowRight, CircleDot } from "lucide-react";
 import { focusForProject } from "@/lib/data/focus";
-import { recommendations, type Recommendation } from "@/lib/recommend";
-import type { Task, Project, Alert, Focus } from "@/lib/domain";
+import type { ProjectFocus } from "@/lib/focus/engine";
+import type { Task, Project, Focus } from "@/lib/domain";
 import { cn } from "@/lib/utils";
 import { Card, Badge, PageHeading } from "@/components/ui";
 import { ProgressRing } from "@/components/donut";
@@ -13,15 +13,16 @@ import { projectIcons, accentStyles } from "@/components/icons";
 
 export function FocusBoard({
   projects,
-  alerts,
+  ranked,
   baseFocus: initialFocus,
 }: {
   projects: Project[];
-  alerts: Alert[];
+  ranked: ProjectFocus[];
   baseFocus: Focus;
 }) {
   const params = useSearchParams();
-  const recs = useMemo(() => recommendations(projects, alerts), [projects, alerts]);
+  // The Focus Engine ranking (computed server-side).
+  const recs = ranked;
   const initial = params.get("project") ?? recs[0]?.project.id ?? "";
 
   const [projectId, setProjectId] = useState(initial);
@@ -194,13 +195,16 @@ export function FocusBoard({
   );
 }
 
-function RecReasons({ rec }: { rec?: Recommendation }) {
-  if (!rec || rec.reasons.length === 0) return null;
+function RecReasons({ rec }: { rec?: ProjectFocus }) {
+  if (!rec) return null;
   return (
     <div className="rounded-xl border border-line bg-surface-2/40 p-3.5">
-      <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-faint">
-        Why this is ranked here
-      </div>
+      {rec.recommendation && (
+        <p className="mb-3 border-l-2 border-accent/50 pl-2.5 text-xs font-medium text-fg">
+          {rec.recommendation}
+        </p>
+      )}
+      <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-faint">Reasons</div>
       <ul className="space-y-1.5">
         {rec.reasons.map((reason, i) => (
           <li key={i} className="flex items-start gap-2 text-xs text-muted">
