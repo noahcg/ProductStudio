@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 import type { Project } from "@/lib/types";
+import type { ProjectHealth } from "@/lib/health/engine";
 import { cn, relativeTime } from "@/lib/utils";
 import { projectIcons, accentStyles } from "@/components/icons";
 import { Badge } from "@/components/ui";
+import { HealthBadge } from "@/components/health-badge";
 
 const statusTone = {
   Active: "active",
@@ -13,7 +15,7 @@ const statusTone = {
   Shipped: "high",
 } as const;
 
-export function ProjectCard({ project }: { project: Project }) {
+export function ProjectCard({ project, health }: { project: Project; health?: ProjectHealth }) {
   const Icon = projectIcons[project.icon];
   const accent = accentStyles[project.accent];
 
@@ -27,6 +29,13 @@ export function ProjectCard({ project }: { project: Project }) {
         <div className="absolute right-3 top-3">
           <Badge tone={statusTone[project.status]}>{project.status}</Badge>
         </div>
+        {health && (
+          <HealthBadge
+            score={health.score}
+            status={health.status}
+            className="absolute left-3 top-3 rounded-full bg-bg/55 px-2 py-1 backdrop-blur-sm"
+          />
+        )}
         <div
           className={cn(
             "absolute -bottom-5 left-4 grid h-12 w-12 place-items-center rounded-full bg-surface-2 ring-2",

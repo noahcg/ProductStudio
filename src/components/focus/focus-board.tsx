@@ -15,12 +15,14 @@ import {
 } from "lucide-react";
 import type { Task, TaskInput, TaskStatus, Project, Milestone } from "@/lib/domain";
 import type { ProjectFocus } from "@/lib/focus/engine";
+import type { ProjectHealth } from "@/lib/health/engine";
 import { taskStats } from "@/lib/tasks/stats";
 import { cn } from "@/lib/utils";
 import { Card, Badge, PageHeading, Button } from "@/components/ui";
 import { ProgressRing } from "@/components/donut";
 import { projectIcons } from "@/components/icons";
 import { TaskForm } from "./task-form";
+import { HealthSummary } from "./health-summary";
 import {
   createTaskAction,
   updateTaskAction,
@@ -47,11 +49,13 @@ export function FocusBoard({
   ranked,
   milestones,
   tasks,
+  health,
 }: {
   projects: Project[];
   ranked: ProjectFocus[];
   milestones: Milestone[];
   tasks: Task[];
+  health: ProjectHealth[];
 }) {
   const params = useSearchParams();
   const [selectedId, setSelectedId] = useState(params.get("project") ?? ranked[0]?.project.id ?? "");
@@ -76,6 +80,7 @@ export function FocusBoard({
     milestones.find((m) => m.projectId === selectedId);
   const milestoneTasks = milestone ? optimistic.filter((t) => t.milestoneId === milestone.id) : [];
   const stats = taskStats(milestoneTasks);
+  const selectedHealth = health.find((h) => h.project.id === selectedId);
 
   function close() {
     setModal({ mode: "closed" });
@@ -204,8 +209,9 @@ export function FocusBoard({
             {error && <p className="mt-3 text-sm text-danger">{error}</p>}
           </Card>
 
-          {/* Focus Engine ranking */}
-          <Card className="flex h-full flex-col p-5">
+          {/* Focus Engine ranking + project health */}
+          <div className="flex flex-col gap-5">
+          <Card className="flex flex-col p-5">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-accent" />
               <h3 className="text-[15px] font-semibold tracking-tight text-fg">What to work on next</h3>
@@ -245,6 +251,9 @@ export function FocusBoard({
               <RecReasons rec={ranked.find((r) => r.project.id === selectedId)} />
             </div>
           </Card>
+
+          {selectedHealth && <HealthSummary health={selectedHealth} />}
+          </div>
         </div>
       )}
 

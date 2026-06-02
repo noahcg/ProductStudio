@@ -39,6 +39,7 @@ import type {
 } from "../domain";
 import { categoryColor } from "../constants/palette";
 import { computeFocus, type FocusInput, type FocusResult } from "../focus/engine";
+import { computeHealth, type ProjectHealth } from "../health/engine";
 import { withSource, activeSource } from "./source";
 import type { DataSource } from "./source";
 import { alerts } from "./alerts";
@@ -136,6 +137,11 @@ async function focusInput(s: DataSource): Promise<FocusInput> {
 /** Full Focus Engine result — current focus, ranking, scores, reasons. */
 export async function getFocusResult(): Promise<FocusResult> {
   return withSource(async (s) => computeFocus(await focusInput(s)));
+}
+
+/** Project Health Engine result — per-project score, status, category breakdown. */
+export async function getProjectHealth(): Promise<ProjectHealth[]> {
+  return withSource(async (s) => computeHealth(await focusInput(s)));
 }
 
 /** The Current Focus, shaped as the Focus view the Studio/Focus panels render. */

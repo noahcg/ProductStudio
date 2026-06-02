@@ -10,6 +10,7 @@ import type {
 import { now as studioNow } from "../clock";
 import { relativeTime } from "../utils";
 import { taskStats, type TaskStats } from "../tasks/stats";
+import { computeHealth, type ProjectHealth } from "../health/engine";
 
 /**
  * The Focus Engine — deterministic, no AI/LLM.
@@ -73,6 +74,10 @@ const W = {
   critSignal: -20,
   staleDays: 14,
   recentDays: 7,
+  // Health Engine integration (balanced — must not override milestone progress).
+  healthAttention: 0.15, // ×(100 − health score): lower health → more attention
+  momentumBoost: 0.1, // ×(momentum − 50)
+  riskBoost: 0.08, // ×(100 − risk score)
 } as const;
 
 function daysSince(iso: string, now: Date): number {
@@ -88,7 +93,12 @@ function latestIso(isos: string[]): string | undefined {
 
 const plural = (n: number) => (n === 1 ? "" : "s");
 
-function scoreProject(project: Project, input: FocusInput, now: Date): ProjectFocus {
+function scoreProject(
+  project: Project,
+  input: FocusInput,
+  now: Date,
+  health?: ProjectHealth
+): ProjectFocus {
   const signals: FocusSignal[] = [];
   const reasons: string[] = [];
   const add = (label: string, delta: number) =>
@@ -169,6 +179,14 @@ function scoreProject(project: Project, input: FocusInput, now: Date): ProjectFo
   ).length;
   if (openDecisions > 0) reasons.push(`${openDecisions} open decision${plural(openDecisions)}`);
 
+  // --- Project Health (balanced input; does not override milestone progress) ---
+  if (health) {
+    if (health.score < 90) add(`Needs attention (health ${health.score})`, Math.round((100 - health.score) * W.healthAttention));
+    if (health.momentum !== 50) add(`Momentum ${health.momentum}/100`, Math.round((health.momentum - 50) * W.momentumBoost));
+    if (health.risk < 100) add(`Risk present`, Math.round((100 - health.risk) * W.riskBoost));
+    reasons.push(`Health ${health.score}/100 — ${health.status}`);
+  }
+
   const score = Math.round(signals.reduce((sum, sig) => sum + sig.delta, 0));
   const recommendation = recommend(project, milestone, stats, nextUp(project, milestone, input));
 
@@ -194,8 +212,9 @@ function recommend(project: Project, milestone: Milestone | undefined, stats: Ta
 }
 
 export function computeFocus(input: FocusInput, now: Date = studioNow()): FocusResult {
+  const healthById = new Map(computeHealth(input, now).map((h) => [h.project.id, h]));
   const ranked = input.projects
-    .map((p) => scoreProject(p, input, now))
+    .map((p) => scoreProject(p, input, now, healthById.get(p.id)))
     .sort((a, b) => b.score - a.score || a.project.id.localeCompare(b.project.id));
   return { current: ranked[0], ranked };
 }
