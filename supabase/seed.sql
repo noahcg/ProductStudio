@@ -16,24 +16,24 @@ truncate
 -- -----------------------------------------------------------------------------
 -- integrations (studio-level connection registry)
 -- -----------------------------------------------------------------------------
-insert into integrations (key, name, category, connected, detail) values
-  ('vercel',     'Vercel',        'hosting',  true, 'All deployments successful'),
-  ('supabase',   'Supabase',      'database', true, 'Storage 82%'),
-  ('github',     'GitHub',        'git',      true, 'All repositories synced'),
-  ('cloudflare', 'Cloudflare',    'domains',  true, 'All domains healthy'),
-  ('openai',     'OpenAI API',    'ai',       true, 'Normal usage'),
-  ('anthropic',  'Anthropic API', 'ai',       true, 'Normal usage');
+insert into integrations (key, name, category, connected, detail, position) values
+  ('vercel',     'Vercel',        'hosting',  true, 'All deployments successful', 1),
+  ('supabase',   'Supabase',      'database', true, 'Storage 82%',                2),
+  ('github',     'GitHub',        'git',      true, 'All repositories synced',    3),
+  ('cloudflare', 'Cloudflare',    'domains',  true, 'All domains healthy',        4),
+  ('openai',     'OpenAI API',    'ai',       true, 'Normal usage',               5),
+  ('anthropic',  'Anthropic API', 'ai',       true, 'Normal usage',               6);
 
 -- -----------------------------------------------------------------------------
 -- projects
 -- -----------------------------------------------------------------------------
 insert into projects
-  (slug, name, tagline, status, progress, next_milestone, open_tasks, blockers, last_activity_at, accent, icon, repo, primary_domain)
+  (slug, name, tagline, status, progress, next_milestone, open_tasks, blockers, last_activity_at, accent, icon, repo, primary_domain, position)
 values
-  ('home-cooked',      'Home Cooked',     'Cookbook Platform',   'Active',   83, 'Family Sharing MVP',  3, 1, '2026-06-05 16:20:00', 'amber',  'chef',     'noahg/home-cooked',      'tryhomecooked.com'),
-  ('wardrobe-harmony', 'WardrobeHarmony', 'Colorblind Closet',   'Active',   48, 'Closet Import',       5, 0, '2026-05-24 11:00:00', 'violet', 'shirt',    'noahg/wardrobe-harmony', 'wardrobeharmony.com'),
-  ('personal-trainer', 'PersonalTrainer', 'Trainer Management',  'Planning', 21, 'Client Scheduling',   4, 0, '2026-05-09 09:30:00', 'blue',   'dumbbell', 'noahg/personal-trainer', null),
-  ('cascade-lounge',   'Cascade Lounge',  'Lifestyle & Content', 'Content',  35, 'Spring Content Drop', 2, 0, '2026-05-31 18:00:00', 'orange', 'sofa',     null,                     'cascadelounge.co');
+  ('home-cooked',      'Home Cooked',     'Cookbook Platform',   'Active',   83, 'Family Sharing MVP',  3, 1, '2026-06-05 16:20:00', 'amber',  'chef',     'noahg/home-cooked',      'tryhomecooked.com',   1),
+  ('wardrobe-harmony', 'WardrobeHarmony', 'Colorblind Closet',   'Active',   48, 'Closet Import',       5, 0, '2026-05-24 11:00:00', 'violet', 'shirt',    'noahg/wardrobe-harmony', 'wardrobeharmony.com', 2),
+  ('personal-trainer', 'PersonalTrainer', 'Trainer Management',  'Planning', 21, 'Client Scheduling',   4, 0, '2026-05-09 09:30:00', 'blue',   'dumbbell', 'noahg/personal-trainer', null,                  3),
+  ('cascade-lounge',   'Cascade Lounge',  'Lifestyle & Content', 'Content',  35, 'Spring Content Drop', 2, 0, '2026-05-31 18:00:00', 'orange', 'sofa',     null,                     'cascadelounge.co',    4);
 
 -- -----------------------------------------------------------------------------
 -- milestones (one current milestone per project)
@@ -47,43 +47,43 @@ insert into milestones (slug, project_id, title, summary, priority, progress, st
 -- -----------------------------------------------------------------------------
 -- tasks (Home Cooked's Family Sharing MVP)
 -- -----------------------------------------------------------------------------
-insert into tasks (project_id, milestone_id, label, state, estimate)
+insert into tasks (project_id, milestone_id, label, state, estimate, position)
 select
   (select id from projects where slug = 'home-cooked'),
   (select id from milestones where slug = 'm-home-cooked'),
-  t.label, t.state, t.estimate
+  t.label, t.state, t.estimate, t.position
 from (values
-  ('Design sharing permissions',   'done',   null),
-  ('Invite flow wireframes',       'done',   null),
-  ('Build share links backend',    'done',   null),
-  ('Update settings UI',           'active', '~3h'),
-  ('Permission edge-case tests',   'todo',   '~2h'),
-  ('Ship behind feature flag',     'todo',   '~1h')
-) as t(label, state, estimate);
+  ('Design sharing permissions',   'done',   null,  1),
+  ('Invite flow wireframes',       'done',   null,  2),
+  ('Build share links backend',    'done',   null,  3),
+  ('Update settings UI',           'active', '~3h', 4),
+  ('Permission edge-case tests',   'todo',   '~2h', 5),
+  ('Ship behind feature flag',     'todo',   '~1h', 6)
+) as t(label, state, estimate, position);
 
 -- -----------------------------------------------------------------------------
 -- roadmap_items (Now / Next / Later)
 -- -----------------------------------------------------------------------------
-insert into roadmap_items (project_id, milestone_id, title, column_key, effort, tag) values
-  ((select id from projects where slug = 'home-cooked'),      (select id from milestones where slug = 'm-home-cooked'),      'Family Sharing MVP',          'now',   'M', 'milestone'),
-  ((select id from projects where slug = 'home-cooked'),      null,                                                          'Settings UI refresh',         'now',   'S', null),
-  ((select id from projects where slug = 'wardrobe-harmony'), (select id from milestones where slug = 'm-wardrobe-harmony'), 'Closet Import',               'now',   'L', 'milestone'),
-  ((select id from projects where slug = 'home-cooked'),      null,                                                          'Recipe import from URL',      'next',  'M', null),
-  ((select id from projects where slug = 'wardrobe-harmony'), null,                                                          'Color-match recommendations', 'next',  'L', null),
-  ((select id from projects where slug = 'personal-trainer'), (select id from milestones where slug = 'm-personal-trainer'), 'Client scheduling',           'next',  'M', 'milestone'),
-  ((select id from projects where slug = 'cascade-lounge'),   null,                                                          'Spring content drop',         'next',  'S', null),
-  ((select id from projects where slug = 'home-cooked'),      null,                                                          'Mobile app shell',            'later', 'L', null),
-  ((select id from projects where slug = 'personal-trainer'), null,                                                          'Stripe billing',              'later', 'M', null),
-  ((select id from projects where slug = 'cascade-lounge'),   null,                                                          'Newsletter automation',       'later', 'S', null);
+insert into roadmap_items (project_id, milestone_id, title, column_key, effort, tag, position) values
+  ((select id from projects where slug = 'home-cooked'),      (select id from milestones where slug = 'm-home-cooked'),      'Family Sharing MVP',          'now',   'M', 'milestone', 1),
+  ((select id from projects where slug = 'home-cooked'),      null,                                                          'Settings UI refresh',         'now',   'S', null,         2),
+  ((select id from projects where slug = 'wardrobe-harmony'), (select id from milestones where slug = 'm-wardrobe-harmony'), 'Closet Import',               'now',   'L', 'milestone', 3),
+  ((select id from projects where slug = 'home-cooked'),      null,                                                          'Recipe import from URL',      'next',  'M', null,         4),
+  ((select id from projects where slug = 'wardrobe-harmony'), null,                                                          'Color-match recommendations', 'next',  'L', null,         5),
+  ((select id from projects where slug = 'personal-trainer'), (select id from milestones where slug = 'm-personal-trainer'), 'Client scheduling',           'next',  'M', 'milestone', 6),
+  ((select id from projects where slug = 'cascade-lounge'),   null,                                                          'Spring content drop',         'next',  'S', null,         7),
+  ((select id from projects where slug = 'home-cooked'),      null,                                                          'Mobile app shell',            'later', 'L', null,         8),
+  ((select id from projects where slug = 'personal-trainer'), null,                                                          'Stripe billing',              'later', 'M', null,         9),
+  ((select id from projects where slug = 'cascade-lounge'),   null,                                                          'Newsletter automation',       'later', 'S', null,        10);
 
 -- -----------------------------------------------------------------------------
 -- decisions
 -- -----------------------------------------------------------------------------
-insert into decisions (project_id, title, status, dated_at, rationale, options, chosen) values
-  ((select id from projects where slug = 'home-cooked'),      'Use Supabase row-level security for sharing',       'Decided', '2026-06-02 00:00:00', 'RLS keeps permission logic in one place and avoids leaking other families'' data through the API layer.', array['App-layer checks','Supabase RLS','Separate share service'], 'Supabase RLS'),
-  ((select id from projects where slug = 'home-cooked'),      'Defer native mobile until web retention proves out', 'Decided', '2026-05-20 00:00:00', 'PWA covers 80% of mobile needs at ~10% of the cost while the core loop is still changing.',               array['React Native now','PWA first'],                              'PWA first'),
-  ((select id from projects where slug = 'personal-trainer'), 'Pricing model for PersonalTrainer',                 'Open',    '2026-06-01 00:00:00', 'Per-seat vs per-client pricing — need to interview 5 trainers before committing.',                        array['Per-seat','Per-active-client','Flat tier'],                  null),
-  ((select id from projects where slug = 'cascade-lounge'),   'Whether to keep Cascade Lounge in the portfolio',   'Revisit', '2026-05-15 00:00:00', 'Content engagement is flat. Revisit at end of Q2 with traffic data.',                                     null,                                                               null);
+insert into decisions (project_id, title, status, dated_at, rationale, options, chosen, position) values
+  ((select id from projects where slug = 'home-cooked'),      'Use Supabase row-level security for sharing',       'Decided', '2026-06-02 00:00:00', 'RLS keeps permission logic in one place and avoids leaking other families'' data through the API layer.', array['App-layer checks','Supabase RLS','Separate share service'], 'Supabase RLS', 1),
+  ((select id from projects where slug = 'home-cooked'),      'Defer native mobile until web retention proves out', 'Decided', '2026-05-20 00:00:00', 'PWA covers 80% of mobile needs at ~10% of the cost while the core loop is still changing.',               array['React Native now','PWA first'],                              'PWA first',   2),
+  ((select id from projects where slug = 'personal-trainer'), 'Pricing model for PersonalTrainer',                 'Open',    '2026-06-01 00:00:00', 'Per-seat vs per-client pricing — need to interview 5 trainers before committing.',                        array['Per-seat','Per-active-client','Flat tier'],                  null,          3),
+  ((select id from projects where slug = 'cascade-lounge'),   'Whether to keep Cascade Lounge in the portfolio',   'Revisit', '2026-05-15 00:00:00', 'Content engagement is flat. Revisit at end of Q2 with traffic data.',                                     null,                                                               null,          4);
 
 -- -----------------------------------------------------------------------------
 -- activity_items (integration_key = provenance)
@@ -98,24 +98,24 @@ insert into activity_items (project_id, integration_key, kind, title, occurred_a
 -- -----------------------------------------------------------------------------
 -- signals (studio-wide service health; integration_key = reporting source)
 -- -----------------------------------------------------------------------------
-insert into signals (project_id, integration_key, service, detail, level) values
-  (null, 'vercel',     'Vercel',            'All deployments successful', 'ok'),
-  (null, 'supabase',   'Supabase',          'Storage 82%',                'warn'),
-  (null, 'github',     'GitHub',            'All repositories synced',    'ok'),
-  (null, 'cloudflare', 'Domain Monitoring', 'All domains healthy',        'ok'),
-  (null, 'openai',     'OpenAI API',        'Normal usage',               'ok');
+insert into signals (project_id, integration_key, service, detail, level, position) values
+  (null, 'vercel',     'Vercel',            'All deployments successful', 'ok',   1),
+  (null, 'supabase',   'Supabase',          'Storage 82%',                'warn', 2),
+  (null, 'github',     'GitHub',            'All repositories synced',    'ok',   3),
+  (null, 'cloudflare', 'Domain Monitoring', 'All domains healthy',        'ok',   4),
+  (null, 'openai',     'OpenAI API',        'Normal usage',               'ok',   5);
 
 -- -----------------------------------------------------------------------------
 -- expenses (integration_key = billing source)
 -- -----------------------------------------------------------------------------
-insert into expenses (project_id, integration_key, service, category, amount) values
-  (null,                                                      'vercel',     'Vercel Pro',          'Hosting',  20.00),
-  ((select id from projects where slug = 'home-cooked'),      'supabase',   'Supabase',            'Hosting',   1.35),
-  ((select id from projects where slug = 'home-cooked'),      'openai',     'OpenAI API',          'AI Tools',  8.42),
-  ((select id from projects where slug = 'wardrobe-harmony'), 'anthropic',  'Anthropic API',       'AI Tools',  6.20),
-  ((select id from projects where slug = 'home-cooked'),      'cloudflare', 'tryhomecooked.com',   'Domains',   1.60),
-  ((select id from projects where slug = 'wardrobe-harmony'), 'cloudflare', 'wardrobeharmony.com', 'Domains',   1.60),
-  ((select id from projects where slug = 'cascade-lounge'),   'cloudflare', 'cascadelounge.co',    'Domains',   3.20);
+insert into expenses (project_id, integration_key, service, category, amount, position) values
+  (null,                                                      'vercel',     'Vercel Pro',          'Hosting',  20.00, 1),
+  ((select id from projects where slug = 'home-cooked'),      'supabase',   'Supabase',            'Hosting',   1.35, 2),
+  ((select id from projects where slug = 'home-cooked'),      'openai',     'OpenAI API',          'AI Tools',  8.42, 3),
+  ((select id from projects where slug = 'wardrobe-harmony'), 'anthropic',  'Anthropic API',       'AI Tools',  6.20, 4),
+  ((select id from projects where slug = 'home-cooked'),      'cloudflare', 'tryhomecooked.com',   'Domains',   1.60, 5),
+  ((select id from projects where slug = 'wardrobe-harmony'), 'cloudflare', 'wardrobeharmony.com', 'Domains',   1.60, 6),
+  ((select id from projects where slug = 'cascade-lounge'),   'cloudflare', 'cascadelounge.co',    'Domains',   3.20, 7);
 
 -- -----------------------------------------------------------------------------
 -- domains (expires_at = studio anchor 2026-06-07 + the mock's expiresInDays)

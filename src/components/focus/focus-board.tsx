@@ -22,7 +22,7 @@ export function FocusBoard({
 }) {
   const params = useSearchParams();
   const recs = useMemo(() => recommendations(projects, alerts), [projects, alerts]);
-  const initial = params.get("project") ?? recs[0].project.id;
+  const initial = params.get("project") ?? recs[0]?.project.id ?? "";
 
   const [projectId, setProjectId] = useState(initial);
   const baseFocus = useMemo(
@@ -38,7 +38,23 @@ export function FocusBoard({
     setTasks(baseFocus.tasks);
   }
 
-  const project = projects.find((p) => p.id === projectId)!;
+  const project = projects.find((p) => p.id === projectId);
+
+  // Graceful empty state (e.g. database connected but no projects yet).
+  if (!project) {
+    return (
+      <div className="space-y-6">
+        <PageHeading
+          title="Focus"
+          subtitle="Your single most important milestone right now — and what to do next."
+        />
+        <Card className="p-10 text-center text-sm text-muted">
+          No projects yet. Add a project to start tracking focus.
+        </Card>
+      </div>
+    );
+  }
+
   const Icon = projectIcons[project.icon];
   const accent = accentStyles[project.accent];
 

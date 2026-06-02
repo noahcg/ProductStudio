@@ -9,9 +9,9 @@ export default async function MoneyPage() {
   const [{ categories: spend, total: spendTotal }, expenses, spendTrend, projects, projectMap] =
     await Promise.all([getSpend(), getExpenses(), getSpendTrend(), getProjects(), getProjectMap()]);
 
-  const prev = spendTrend[spendTrend.length - 2].amount;
-  const delta = ((spendTotal - prev) / prev) * 100;
-  const maxTrend = Math.max(...spendTrend.map((t) => t.amount));
+  const prev = spendTrend.length > 1 ? spendTrend[spendTrend.length - 2].amount : 0;
+  const delta = prev ? ((spendTotal - prev) / prev) * 100 : 0;
+  const maxTrend = spendTrend.length ? Math.max(...spendTrend.map((t) => t.amount)) : 1;
 
   // Spend per project (domains + AI + hosting attributed to a project).
   const perProject = projects
