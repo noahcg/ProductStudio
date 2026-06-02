@@ -3,6 +3,8 @@ import type {
   Project,
   Milestone,
   Task,
+  TaskInput,
+  TaskStatus,
   RoadmapItem,
   RoadmapInput,
   RoadmapPlacement,
@@ -75,9 +77,12 @@ function mapTask(r: Row): Task {
     id: s(r.id),
     projectId: nested(r, "project") ?? "",
     milestoneId: nested(r, "milestone"),
-    label: s(r.label),
-    state: r.state as Task["state"],
-    estimate: opt(r.estimate),
+    title: s(r.title),
+    description: opt(r.description),
+    status: r.status as Task["status"],
+    priority: r.priority as Task["priority"],
+    targetDate: opt(r.target_date),
+    completedAt: opt(r.completed_at),
   };
 }
 
@@ -332,6 +337,58 @@ export function supabaseSource(sb: SupabaseClient): DataSource {
         if (error) throw error;
       }
     },
+
+    // ---- Writes (Tasks) ----
+
+    async createTask(input: TaskInput): Promise<Task> {
+      const project_id = await projectUuid(sb, input.projectId);
+      const milestone_id = await milestoneUuid(sb, input.milestoneId);
+      const { data: maxRow } = await sb
+        .from("tasks")
+        .select("position")
+        .order("position", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const position = ((maxRow?.position as number | undefined) ?? 0) + 1;
+
+      const { data, error } = await sb
+        .from("tasks")
+        .insert({ ...taskPayload(input), project_id, milestone_id, position })
+        .select("*, project:projects(slug), milestone:milestones(slug)")
+        .single();
+      if (error) throw error;
+      return mapTask(data as unknown as Row);
+    },
+
+    async updateTask(id: string, input: TaskInput): Promise<Task> {
+      const project_id = await projectUuid(sb, input.projectId);
+      const milestone_id = await milestoneUuid(sb, input.milestoneId);
+      const { data, error } = await sb
+        .from("tasks")
+        .update({ ...taskPayload(input), project_id, milestone_id })
+        .eq("id", id)
+        .select("*, project:projects(slug), milestone:milestones(slug)")
+        .single();
+      if (error) throw error;
+      return mapTask(data as unknown as Row);
+    },
+
+    async deleteTask(id: string): Promise<void> {
+      const { error } = await sb.from("tasks").delete().eq("id", id);
+      if (error) throw error;
+    },
+
+    async setTaskStatus(id: string, status: TaskStatus): Promise<Task> {
+      const completed_at = status === "completed" ? new Date().toISOString() : null;
+      const { data, error } = await sb
+        .from("tasks")
+        .update({ status, completed_at })
+        .eq("id", id)
+        .select("*, project:projects(slug), milestone:milestones(slug)")
+        .single();
+      if (error) throw error;
+      return mapTask(data as unknown as Row);
+    },
   };
 }
 
@@ -340,6 +397,24 @@ async function projectUuid(sb: SupabaseClient, slug?: string): Promise<string | 
   if (!slug) return null;
   const { data } = await sb.from("projects").select("id").eq("slug", slug).maybeSingle();
   return (data?.id as string | undefined) ?? null;
+}
+
+/** Resolve a milestone slug to its UUID (or null). */
+async function milestoneUuid(sb: SupabaseClient, slug?: string): Promise<string | null> {
+  if (!slug) return null;
+  const { data } = await sb.from("milestones").select("id").eq("slug", slug).maybeSingle();
+  return (data?.id as string | undefined) ?? null;
+}
+
+function taskPayload(input: TaskInput) {
+  return {
+    title: input.title,
+    description: input.description?.trim() || null,
+    status: input.status,
+    priority: input.priority,
+    target_date: input.targetDate || null,
+    completed_at: input.status === "completed" ? new Date().toISOString() : null,
+  };
 }
 
 function payload(input: DecisionInput) {

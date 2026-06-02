@@ -111,15 +111,24 @@ Migration: [`20260602160000_roadmap_planning.sql`](../../supabase/migrations/202
 adds `description`/`priority`/`status`/`target_date` and renames `position` → `sort_order`
 (additive + safe rename; existing rows preserved).
 
-### `tasks` ⟷ `Task`
+### `tasks` ⟷ `Task`  (execution layer — CRUD in Phase 2.8)
 | Column | Type | Notes |
 |---|---|---|
 | id | uuid PK | |
-| project_id | uuid FK→projects | cascade |
-| milestone_id | uuid FK→milestones NULL | cascade |
-| label | text | |
-| state | text | CHECK `todo\|active\|done` |
-| estimate | text NULL | e.g. `~3h` |
+| project_id | uuid FK→projects | cascade — a task always belongs to a project |
+| milestone_id | uuid FK→milestones NULL | cascade — usually belongs to a milestone |
+| title | text | *(renamed from `label` in 2.8)* |
+| description | text NULL | *(added 2.8)* |
+| status | text NOT NULL default `todo` | CHECK `todo\|in_progress\|blocked\|completed` *(replaced `state` in 2.8)* |
+| priority | text NOT NULL default `medium` | CHECK `low\|medium\|high\|critical` *(added 2.8)* |
+| target_date | date NULL | *(added 2.8)* |
+| completed_at | timestamptz NULL | set when `status = completed` *(added 2.8)* |
+| position | integer | display order |
+
+Migration: [`20260602170000_task_system.sql`](../../supabase/migrations/20260602170000_task_system.sql)
+renames `label`→`title`, migrates `state`→`status` (done→completed, active→in_progress),
+adds `description`/`priority`/`target_date`/`completed_at`, drops `estimate`.
+Existing rows preserved.
 
 ### `decisions` ⟷ `Decision`  (product memory — CRUD in Phase 2.5)
 | Column | Type | Notes |

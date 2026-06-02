@@ -2,6 +2,8 @@ import type {
   Project,
   Milestone,
   Task,
+  TaskInput,
+  TaskStatus,
   RoadmapItem,
   RoadmapInput,
   RoadmapPlacement,
@@ -49,6 +51,13 @@ export interface DataSource {
   deleteRoadmapItem(id: string): Promise<void>;
   /** Apply column/order changes from move & reorder operations. */
   setRoadmapPlacement(placements: RoadmapPlacement[]): Promise<void>;
+
+  // Writes (Tasks / execution).
+  createTask(input: TaskInput): Promise<Task>;
+  updateTask(id: string, input: TaskInput): Promise<Task>;
+  deleteTask(id: string): Promise<void>;
+  /** Quick status change (complete / reopen / block); manages completed_at. */
+  setTaskStatus(id: string, status: TaskStatus): Promise<Task>;
 }
 
 /** Choose the active source: Supabase when configured, else mock. */

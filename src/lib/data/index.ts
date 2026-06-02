@@ -16,6 +16,8 @@ import type {
   Project,
   Milestone,
   Task,
+  TaskInput,
+  TaskStatus,
   Domain,
   Focus,
   Decision,
@@ -78,6 +80,26 @@ export async function getTasks(): Promise<Task[]> {
 
 export async function getTasksForMilestone(milestoneId: string): Promise<Task[]> {
   return withSource(async (s) => (await s.tasks()).filter((t) => t.milestoneId === milestoneId));
+}
+
+export async function getTasksForProject(projectId: string): Promise<Task[]> {
+  return withSource(async (s) => (await s.tasks()).filter((t) => t.projectId === projectId));
+}
+
+export async function createTask(input: TaskInput): Promise<Task> {
+  return activeSource().createTask(input);
+}
+
+export async function updateTask(id: string, input: TaskInput): Promise<Task> {
+  return activeSource().updateTask(id, input);
+}
+
+export async function deleteTask(id: string): Promise<void> {
+  return activeSource().deleteTask(id);
+}
+
+export async function setTaskStatus(id: string, status: TaskStatus): Promise<Task> {
+  return activeSource().setTaskStatus(id, status);
 }
 
 // ---- Domains (owned by projects) ----

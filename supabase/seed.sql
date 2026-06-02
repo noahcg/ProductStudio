@@ -45,21 +45,71 @@ insert into milestones (slug, project_id, title, summary, priority, progress, st
   ('m-cascade-lounge',   (select id from projects where slug = 'cascade-lounge'),   'Spring Content Drop', 'Drive Cascade Lounge toward the "Spring Content Drop" milestone.',        'Medium', 35, 'active');
 
 -- -----------------------------------------------------------------------------
--- tasks (Home Cooked's Family Sharing MVP)
+-- tasks (realistic, milestone-related work for each project)
 -- -----------------------------------------------------------------------------
-insert into tasks (project_id, milestone_id, label, state, estimate, position)
-select
-  (select id from projects where slug = 'home-cooked'),
-  (select id from milestones where slug = 'm-home-cooked'),
-  t.label, t.state, t.estimate, t.position
+-- Home Cooked — Family Sharing MVP
+insert into tasks (project_id, milestone_id, title, status, priority, position)
+select (select id from projects where slug='home-cooked'), (select id from milestones where slug='m-home-cooked'), t.title, t.status, t.priority, t.position
 from (values
-  ('Design sharing permissions',   'done',   null,  1),
-  ('Invite flow wireframes',       'done',   null,  2),
-  ('Build share links backend',    'done',   null,  3),
-  ('Update settings UI',           'active', '~3h', 4),
-  ('Permission edge-case tests',   'todo',   '~2h', 5),
-  ('Ship behind feature flag',     'todo',   '~1h', 6)
-) as t(label, state, estimate, position);
+  ('Design sharing permission model',          'completed',   'high',   1),
+  ('Sharing data model & migrations',          'completed',   'high',   2),
+  ('Build invite workflow',                    'completed',   'high',   3),
+  ('Invite acceptance flow',                   'completed',   'medium', 4),
+  ('Generate & store share links',             'completed',   'medium', 5),
+  ('Shared cookbook read access',              'completed',   'high',   6),
+  ('Permission roles (owner / editor / viewer)','completed',  'high',   7),
+  ('Sharing settings UI',                      'completed',   'medium', 8),
+  ('Activity feed for shared edits',           'completed',   'low',    9),
+  ('Revoke & expire share links',              'completed',   'medium', 10),
+  ('Email acceptance flow',                    'blocked',     'high',   11),
+  ('Permission edge-case tests',               'in_progress', 'medium', 12)
+) as t(title, status, priority, position);
+
+-- WardrobeHarmony — Closet Import
+insert into tasks (project_id, milestone_id, title, status, priority, position)
+select (select id from projects where slug='wardrobe-harmony'), (select id from milestones where slug='m-wardrobe-harmony'), t.title, t.status, t.priority, t.position
+from (values
+  ('CSV import parser',                'completed',   'high',   1),
+  ('Photo upload pipeline',            'completed',   'high',   2),
+  ('Color extraction from photos',     'completed',   'high',   3),
+  ('Map items to wardrobe schema',     'completed',   'medium', 4),
+  ('Dedupe imported items',            'completed',   'medium', 5),
+  ('Colorblind-safe palette tagging',  'in_progress', 'high',   6),
+  ('Handle unsupported file formats',  'blocked',     'medium', 7),
+  ('Bulk-edit imported items',         'todo',        'medium', 8),
+  ('Import progress UI',               'todo',        'medium', 9),
+  ('Import error reporting',           'todo',        'low',    10)
+) as t(title, status, priority, position);
+
+-- PersonalTrainer — Client Scheduling
+insert into tasks (project_id, milestone_id, title, status, priority, position)
+select (select id from projects where slug='personal-trainer'), (select id from milestones where slug='m-personal-trainer'), t.title, t.status, t.priority, t.position
+from (values
+  ('Define scheduling data model',       'completed',   'high',   1),
+  ('Trainer availability calendar',      'completed',   'high',   2),
+  ('Client booking flow',                'in_progress', 'high',   3),
+  ('Recurring sessions',                 'todo',        'medium', 4),
+  ('Timezone handling',                  'todo',        'medium', 5),
+  ('Cancellation & reschedule rules',    'todo',        'medium', 6),
+  ('Session reminders & notifications',  'todo',        'low',    7),
+  ('Calendar sync research',             'todo',        'low',    8)
+) as t(title, status, priority, position);
+
+-- Cascade Lounge — Spring Content Drop
+insert into tasks (project_id, milestone_id, title, status, priority, position)
+select (select id from projects where slug='cascade-lounge'), (select id from milestones where slug='m-cascade-lounge'), t.title, t.status, t.priority, t.position
+from (values
+  ('Plan spring content calendar',  'completed',   'medium', 1),
+  ('Shoot lifestyle photography',   'completed',   'high',   2),
+  ('Draft six feature articles',    'completed',   'medium', 3),
+  ('Edit & proof articles',         'in_progress', 'medium', 4),
+  ('Source product partnerships',   'todo',        'medium', 5),
+  ('Design landing-page modules',   'todo',        'medium', 6),
+  ('Schedule social teasers',       'todo',        'low',    7),
+  ('Newsletter announcement',       'todo',        'low',    8)
+) as t(title, status, priority, position);
+
+update tasks set completed_at = timestamp '2026-06-01 12:00:00' where status = 'completed';
 
 -- -----------------------------------------------------------------------------
 -- roadmap_items (Now / Next / Later)

@@ -4,7 +4,11 @@ import type {
   RoadmapItem,
   RoadmapInput,
   RoadmapPlacement,
+  Task,
+  TaskInput,
+  TaskStatus,
 } from "../domain";
+import { now as studioNow } from "../clock";
 import type { DataSource } from "./source";
 import { projects } from "./projects";
 import { milestones } from "./milestones";
@@ -125,6 +129,31 @@ export const mockSource: DataSource = {
       }
     }
   },
+
+  // ---- Writes: tasks (mutate in-memory `tasks` array) ----
+  async createTask(input: TaskInput) {
+    const task: Task = { id: newId("t"), ...fromTaskInput(input) };
+    tasks.push(task);
+    return task;
+  },
+  async updateTask(id: string, input: TaskInput) {
+    const i = tasks.findIndex((t) => t.id === id);
+    if (i === -1) throw new Error(`Task ${id} not found`);
+    const updated: Task = { ...tasks[i], ...fromTaskInput(input), id };
+    tasks[i] = updated;
+    return updated;
+  },
+  async deleteTask(id: string) {
+    const i = tasks.findIndex((t) => t.id === id);
+    if (i !== -1) tasks.splice(i, 1);
+  },
+  async setTaskStatus(id: string, status: TaskStatus) {
+    const task = tasks.find((t) => t.id === id);
+    if (!task) throw new Error(`Task ${id} not found`);
+    task.status = status;
+    task.completedAt = status === "completed" ? studioNow().toISOString() : undefined;
+    return task;
+  },
 };
 
 function newId(prefix: string): string {
@@ -147,6 +176,19 @@ function fromRoadmapInput(input: RoadmapInput): Omit<RoadmapItem, "id" | "sortOr
     status: input.status,
     effort: input.effort,
     targetDate: input.targetDate || undefined,
+  };
+}
+
+function fromTaskInput(input: TaskInput): Omit<Task, "id"> {
+  return {
+    projectId: input.projectId,
+    milestoneId: input.milestoneId,
+    title: input.title,
+    description: input.description?.trim() || undefined,
+    status: input.status,
+    priority: input.priority,
+    targetDate: input.targetDate || undefined,
+    completedAt: input.status === "completed" ? studioNow().toISOString() : undefined,
   };
 }
 

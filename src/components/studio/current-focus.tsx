@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 export async function CurrentFocus() {
   const focus = await getFocus();
-  const remaining = focus.tasks.filter((t) => t.state !== "done").length;
+  const remaining = focus.tasks.filter((t) => t.status !== "completed").length;
   const [project, milestone] = focus.title.split(" — ");
 
   return (
@@ -26,7 +26,7 @@ export async function CurrentFocus() {
 
       <ul className="mt-5 space-y-3">
         {focus.tasks.slice(0, 4).map((task) => {
-          const done = task.state === "done";
+          const done = task.status === "completed";
           return (
             <li key={task.id} className="flex items-center gap-3 text-sm">
               <span
@@ -34,14 +34,16 @@ export async function CurrentFocus() {
                   "grid h-5 w-5 shrink-0 place-items-center rounded-full border",
                   done
                     ? "border-success bg-success/20 text-success"
-                    : task.state === "active"
+                    : task.status === "in_progress"
                       ? "border-accent text-accent"
-                      : "border-line-strong text-transparent"
+                      : task.status === "blocked"
+                        ? "border-warning text-warning"
+                        : "border-line-strong text-transparent"
                 )}
               >
                 {done && <Check className="h-3 w-3" strokeWidth={3} />}
               </span>
-              <span className={cn(done ? "text-muted line-through" : "text-fg")}>{task.label}</span>
+              <span className={cn(done ? "text-muted line-through" : "text-fg")}>{task.title}</span>
             </li>
           );
         })}
