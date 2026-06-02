@@ -9,7 +9,7 @@
 -- =============================================================================
 
 truncate
-  domains, expenses, signals, activity_items, decisions,
+  expense_snapshots, domains, expenses, signals, activity_items, decisions,
   tasks, roadmap_items, milestones, projects, integrations
   restart identity cascade;
 
@@ -124,3 +124,25 @@ insert into domains (project_id, name, registrar, integration_key, expires_at, s
   ((select id from projects where slug = 'home-cooked'),      'tryhomecooked.com',   'Cloudflare', 'cloudflare', DATE '2026-06-07' + 327, 'healthy'),
   ((select id from projects where slug = 'wardrobe-harmony'), 'wardrobeharmony.com', 'Cloudflare', 'cloudflare', DATE '2026-06-07' + 41,  'expiring'),
   ((select id from projects where slug = 'cascade-lounge'),   'cascadelounge.co',    'Cloudflare', 'cloudflare', DATE '2026-06-07' + 198, 'healthy');
+
+-- -----------------------------------------------------------------------------
+-- expense_snapshots (6-month spend history → Money trend chart)
+--   * Jan–May 2026: period roll-up totals (category/vendor NULL) — only the
+--     monthly total was recorded for older periods.
+--   * Jun 2026: itemized from the current expenses (sums to 42.37).
+--   Monthly trend = SUM(amount) GROUP BY period_start.
+-- -----------------------------------------------------------------------------
+insert into expense_snapshots (category, vendor, amount, period_start, period_end) values
+  (null, null, 31.10, DATE '2026-01-01', DATE '2026-01-31'),
+  (null, null, 33.80, DATE '2026-02-01', DATE '2026-02-28'),
+  (null, null, 29.40, DATE '2026-03-01', DATE '2026-03-31'),
+  (null, null, 38.20, DATE '2026-04-01', DATE '2026-04-30'),
+  (null, null, 40.05, DATE '2026-05-01', DATE '2026-05-31'),
+  -- June 2026, itemized (mirrors the current expenses; Σ = 42.37)
+  ('Hosting',  'Vercel Pro',          20.00, DATE '2026-06-01', DATE '2026-06-30'),
+  ('Hosting',  'Supabase',             1.35, DATE '2026-06-01', DATE '2026-06-30'),
+  ('AI Tools', 'OpenAI API',           8.42, DATE '2026-06-01', DATE '2026-06-30'),
+  ('AI Tools', 'Anthropic API',        6.20, DATE '2026-06-01', DATE '2026-06-30'),
+  ('Domains',  'tryhomecooked.com',    1.60, DATE '2026-06-01', DATE '2026-06-30'),
+  ('Domains',  'wardrobeharmony.com',  1.60, DATE '2026-06-01', DATE '2026-06-30'),
+  ('Domains',  'cascadelounge.co',     3.20, DATE '2026-06-01', DATE '2026-06-30');

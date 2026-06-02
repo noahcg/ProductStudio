@@ -41,6 +41,7 @@ projects ──┬─< milestones ──< tasks
            └─< domains        ─→ integrations (source)
 
 integrations (studio-level registry, referenced by key)
+expense_snapshots (studio-level spend history → Money trend; no project_id)
 ```
 
 ## Tables
@@ -165,6 +166,23 @@ Aggregate root.
 | expires_at | date NULL | stored fact; domain `expiresInDays` is **derived** = `expires_at − studio now` |
 | status | text | CHECK `healthy\|expiring\|expired` |
 
+### `expense_snapshots`  (spend history → Money trend; studio-level)
+Historical spend records powering the Money 6-month trend chart. Not a domain
+entity — a reporting/history table. No `project_id` (portfolio-wide). Migration:
+[`20260602130000_expense_snapshots.sql`](../../supabase/migrations/20260602130000_expense_snapshots.sql).
+
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid PK | |
+| category | text NULL | CHECK `NULL` or `Hosting\|AI Tools\|Domains` (NULL = period roll-up total) |
+| vendor | text NULL | corresponds to `expenses.service`; NULL on roll-up rows |
+| amount | numeric(10,2) ≥0 | |
+| period_start | date | CHECK `period_end >= period_start` |
+| period_end | date | |
+| created_at / updated_at | timestamptz | |
+
+Monthly trend query: `select period_start, sum(amount) from expense_snapshots group by period_start order by period_start`. Rows may be itemized (current month) or a roll-up total (older months where only the total is known).
+
 ## Domain ↔ schema naming differences
 
 | Domain (TS) | Column | Why |
@@ -177,8 +195,14 @@ Aggregate root.
 | `Domain.expiresInDays` | `expires_at` (date) | store the absolute fact; derive the relative value |
 | `Integration["key"]` everywhere | `integration_key` | explicit FK column |
 
-## Not modeled (by design)
+## Not modeled (by design / deferred)
 - **Alert** / `Focus` — these are *derived views* in the domain model, not owned
   entities, so they have no tables (alerts are computed from signals/domains/
   staleness; focus is a milestone + its tasks).
-- **Profile / users / teams** — single-user; no account model.
+- **Profile / users / teams** — single-user; no account model. The owner name
+  and notification badge stay app-side constants.
+- **WeeklySummary** (footer banner) — studio chrome; derive from `activity_items`
+  or keep app-side. No table.
+
+Spend trend history (the Money 6-month chart) **is** modeled — see
+`expense_snapshots` below (resolved F1).
