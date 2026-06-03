@@ -18,7 +18,7 @@ export async function RecentActivity() {
         }
       />
       <ul className="px-5 py-3">
-        {activity.map((item) => {
+        {activity.slice(0, 6).map((item) => {
           const Icon = activityIcons[item.kind];
           const project = item.projectId ? projectMap.get(item.projectId) : undefined;
           return (

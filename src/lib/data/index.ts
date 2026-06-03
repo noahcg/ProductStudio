@@ -41,6 +41,8 @@ import { categoryColor } from "../constants/palette";
 import { computeFocus, type FocusInput, type FocusResult } from "../focus/engine";
 import { computeHealth, type ProjectHealth } from "../health/engine";
 import { computeSignals, type GeneratedSignal } from "../signals/engine";
+import { getGitHub } from "../integrations/github/provider";
+import type { GitHubProjectStatus } from "../integrations/github/types";
 import { withSource, activeSource } from "./source";
 import type { DataSource } from "./source";
 import { alerts } from "./alerts";
@@ -125,8 +127,10 @@ const EMPTY_FOCUS: Focus = {
  * Gather every input the Signals → Health → Focus pipeline needs, then run the
  * Signals Engine once so its output feeds Health and Focus.
  */
-async function pipeline(s: DataSource): Promise<FocusInput & { generatedSignals: GeneratedSignal[] }> {
-  const [projects, milestones, roadmap, tasks, decisions, activity, signals, expenses, domains] =
+async function pipeline(
+  s: DataSource
+): Promise<FocusInput & { generatedSignals: GeneratedSignal[] }> {
+  const [projects, milestones, roadmap, tasks, decisions, baseActivity, signals, expenses, domains] =
     await Promise.all([
       s.projects(),
       s.milestones(),
@@ -138,22 +142,44 @@ async function pipeline(s: DataSource): Promise<FocusInput & { generatedSignals:
       s.expenses(),
       s.domains(),
     ]);
-  const generatedSignals = computeSignals({
+
+  // GitHub integration: augments the activity feed, signals, and health.
+  // GitHub is never the source of truth for the domain entities above.
+  const github = await getGitHub(projects);
+  const activity = mergeActivity(baseActivity, github.events);
+  const generatedSignals = [
+    ...computeSignals({ projects, milestones, roadmap, tasks, decisions, activity, expenses, domains }),
+    ...github.signals,
+  ];
+
+  return {
     projects,
     milestones,
     roadmap,
     tasks,
     decisions,
     activity,
-    expenses,
-    domains,
-  });
-  return { projects, milestones, roadmap, tasks, decisions, activity, signals, generatedSignals };
+    signals,
+    generatedSignals,
+    github: github.statuses,
+  };
 }
 
-/** Operational signals generated from Product Studio's own data. */
+/** Merge integration-sourced activity into the feed (newest first, deduped). */
+function mergeActivity(base: Activity[], extra: Activity[]): Activity[] {
+  const byId = new Map<string, Activity>();
+  for (const a of [...base, ...extra]) byId.set(a.id, a);
+  return [...byId.values()].sort((a, b) => (a.whenIso < b.whenIso ? 1 : -1));
+}
+
+/** Operational signals generated from Product Studio's own data + integrations. */
 export async function getGeneratedSignals(): Promise<GeneratedSignal[]> {
   return withSource(async (s) => (await pipeline(s)).generatedSignals);
+}
+
+/** Lightweight per-project GitHub status for the Studio cards. */
+export async function getGitHubStatuses(): Promise<Record<string, GitHubProjectStatus>> {
+  return withSource(async (s) => getGitHub(await s.projects()).then((g) => g.statuses));
 }
 
 /** Full Focus Engine result — current focus, ranking, scores, reasons. */
@@ -237,7 +263,10 @@ export async function getIntegrations(): Promise<Integration[]> {
 }
 
 export async function getActivity(): Promise<Activity[]> {
-  return withSource((s) => s.activity());
+  return withSource(async (s) => {
+    const [base, github] = await Promise.all([s.activity(), getGitHub(await s.projects())]);
+    return mergeActivity(base, github.events);
+  });
 }
 
 // ---- Alerts (derived "needs attention" view; no table — fixture by design) ----

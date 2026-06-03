@@ -4,6 +4,7 @@ import {
   Dumbbell,
   Sofa,
   GitCommitHorizontal,
+  GitPullRequest,
   CircleCheck,
   Rocket,
   Globe,
@@ -28,6 +29,7 @@ export const projectIcons: Record<Project["icon"], LucideIcon> = {
 
 export const activityIcons: Record<ActivityKind, LucideIcon> = {
   commit: GitCommitHorizontal,
+  pr: GitPullRequest,
   issue: CircleCheck,
   deploy: Rocket,
   domain: Globe,

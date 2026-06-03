@@ -1,6 +1,6 @@
 import type { ActivityId, ProjectId, IntegrationKey } from "./ids";
 
-export type ActivityKind = "commit" | "issue" | "deploy" | "domain" | "infra";
+export type ActivityKind = "commit" | "issue" | "deploy" | "domain" | "infra" | "pr";
 
 /**
  * A point-in-time event in a project's history. Owned by a project

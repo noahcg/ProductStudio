@@ -12,6 +12,7 @@ import { relativeTime } from "../utils";
 import { taskStats, type TaskStats } from "../tasks/stats";
 import { computeHealth, type ProjectHealth } from "../health/engine";
 import type { GeneratedSignal } from "../signals/engine";
+import type { GitHubProjectStatus } from "../integrations/github/types";
 
 /**
  * The Focus Engine — deterministic, no AI/LLM.
@@ -31,6 +32,7 @@ export interface FocusInput {
   activity: Activity[];
   signals: Signal[];
   generatedSignals?: GeneratedSignal[];
+  github?: Record<string, GitHubProjectStatus>;
 }
 
 export interface FocusSignal {

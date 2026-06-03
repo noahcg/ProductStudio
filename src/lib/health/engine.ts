@@ -11,6 +11,7 @@ import { now as studioNow } from "../clock";
 import { relativeTime } from "../utils";
 import { taskStats } from "../tasks/stats";
 import type { GeneratedSignal } from "../signals/engine";
+import type { GitHubProjectStatus } from "../integrations/github/types";
 
 /**
  * The Project Health Engine — deterministic, no AI/LLM, no random values.
@@ -29,6 +30,8 @@ export interface HealthInput {
   signals: Signal[];
   /** Operational signals from the Signals Engine — the Signals category summarizes these. */
   generatedSignals?: GeneratedSignal[];
+  /** GitHub status per project — influences Momentum + Execution only. */
+  github?: Record<string, GitHubProjectStatus>;
 }
 
 export type HealthCategory = "momentum" | "execution" | "planning" | "focus" | "risk" | "signals";
@@ -74,8 +77,11 @@ const plural = (n: number) => (n === 1 ? "" : "s");
 function daysSince(iso: string, now: Date): number {
   return Math.round((now.getTime() - new Date(iso).getTime()) / 86_400_000);
 }
-function latestIso(isos: string[]): string | undefined {
-  return isos.reduce<string | undefined>((max, iso) => (!max || new Date(iso) > new Date(max) ? iso : max), undefined);
+function latestIso(isos: (string | undefined)[]): string | undefined {
+  return isos.reduce<string | undefined>(
+    (max, iso) => (iso && (!max || new Date(iso) > new Date(max)) ? iso : max),
+    undefined
+  );
 }
 
 function statusFor(score: number): HealthStatus {
@@ -93,8 +99,10 @@ function projectHealth(project: Project, input: HealthInput, now: Date): Project
   const stats = taskStats(milestoneTasks, now);
 
   // ---- Momentum: recent activity + recent task completion ----
+  // GitHub activity feeds Momentum + Execution (never planning/decisions/roadmap).
+  const gh = input.github?.[project.id];
   const projectActivity = input.activity.filter((a) => a.projectId === project.id);
-  const last = latestIso([...projectActivity.map((a) => a.whenIso), project.lastActivityIso].filter(Boolean));
+  const last = latestIso([...projectActivity.map((a) => a.whenIso), project.lastActivityIso, gh?.lastActivityIso]);
   const idle = last ? daysSince(last, now) : Infinity;
   const recentCompleted = projectTasks.filter(
     (t) => t.status === "completed" && t.completedAt && daysSince(t.completedAt, now) <= 7
@@ -103,23 +111,26 @@ function projectHealth(project: Project, input: HealthInput, now: Date): Project
   const completionScore = recentCompleted >= 3 ? 100 : recentCompleted >= 1 ? 70 : 30;
   const momentum = Math.round(0.6 * activityScore + 0.4 * completionScore);
   const momentumReason: HealthReason =
-    idle === Infinity
-      ? { text: "No recorded activity", good: false }
-      : idle >= 14
-        ? { text: `No activity in ${idle} days`, good: false }
-        : { text: `Recent activity (${relativeTime(last!, now)})`, good: true };
+    gh && gh.commitsThisWeek > 0
+      ? { text: `${gh.commitsThisWeek} commit${plural(gh.commitsThisWeek)} this week`, good: true }
+      : idle === Infinity
+        ? { text: "No recorded activity", good: false }
+        : idle >= 14
+          ? { text: `No activity in ${idle} days`, good: false }
+          : { text: `Recent activity (${relativeTime(last!, now)})`, good: true };
 
-  // ---- Execution: task + milestone completion ----
+  // ---- Execution: task + milestone completion (+ small GitHub shipping nudge) ----
   let execution: number;
   let executionReason: HealthReason;
+  const ghBoost = gh ? Math.min(gh.commitsThisWeek, 6) : 0;
   if (stats.total) {
-    execution = clamp(stats.progress - Math.max(0, stats.remaining - 6) * 4);
+    execution = clamp(stats.progress - Math.max(0, stats.remaining - 6) * 4 + ghBoost);
     executionReason =
       stats.progress >= 50
         ? { text: `${stats.completed}/${stats.total} tasks complete (${stats.progress}%)`, good: true }
         : { text: `${stats.progress}% complete, ${stats.remaining} task${plural(stats.remaining)} remaining`, good: false };
   } else {
-    execution = milestone ? Math.min(milestone.progress, 50) : 10;
+    execution = clamp((milestone ? Math.min(milestone.progress, 50) : 10) + ghBoost);
     executionReason = { text: "No tasks tracked yet", good: false };
   }
 

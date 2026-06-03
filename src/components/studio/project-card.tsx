@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, GitBranch } from "lucide-react";
 import type { Project } from "@/lib/types";
 import type { ProjectHealth } from "@/lib/health/engine";
+import type { GitHubProjectStatus } from "@/lib/integrations/github/types";
 import { cn, relativeTime } from "@/lib/utils";
 import { projectIcons, accentStyles } from "@/components/icons";
 import { Badge } from "@/components/ui";
@@ -15,7 +16,15 @@ const statusTone = {
   Shipped: "high",
 } as const;
 
-export function ProjectCard({ project, health }: { project: Project; health?: ProjectHealth }) {
+export function ProjectCard({
+  project,
+  health,
+  github,
+}: {
+  project: Project;
+  health?: ProjectHealth;
+  github?: GitHubProjectStatus;
+}) {
   const Icon = projectIcons[project.icon];
   const accent = accentStyles[project.accent];
 
@@ -49,6 +58,13 @@ export function ProjectCard({ project, health }: { project: Project; health?: Pr
       <div className="flex flex-1 flex-col px-4 pb-4 pt-7">
         <h3 className="text-[15px] font-semibold tracking-tight text-fg">{project.name}</h3>
         <p className="text-xs text-muted">{project.tagline}</p>
+
+        {github?.connected && (
+          <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-faint">
+            <GitBranch className="h-3 w-3" />
+            <span>{github.label}</span>
+          </div>
+        )}
 
         <div className="mt-3">
           <p className="mb-1.5 text-xs font-medium text-fg">

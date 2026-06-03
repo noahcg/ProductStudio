@@ -1,5 +1,11 @@
 import { ArrowRight, Star } from "lucide-react";
-import { getProjects, getWeeklySummary, getProfile, getProjectHealth } from "@/lib/data";
+import {
+  getProjects,
+  getWeeklySummary,
+  getProfile,
+  getProjectHealth,
+  getGitHubStatuses,
+} from "@/lib/data";
 import { LinkButton } from "@/components/ui";
 import { StatRow } from "@/components/studio/stat-row";
 import { ProjectCard } from "@/components/studio/project-card";
@@ -11,11 +17,12 @@ import { MonthlySpend } from "@/components/studio/monthly-spend";
 import { Greeting } from "@/components/studio/greeting";
 
 export default async function StudioPage() {
-  const [projects, weekly, profile, health] = await Promise.all([
+  const [projects, weekly, profile, health, githubStatuses] = await Promise.all([
     getProjects(),
     getWeeklySummary(),
     getProfile(),
     getProjectHealth(),
+    getGitHubStatuses(),
   ]);
   const healthById = new Map(health.map((h) => [h.project.id, h]));
 
@@ -40,7 +47,12 @@ export default async function StudioPage() {
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {projects.map((p) => (
-                <ProjectCard key={p.id} project={p} health={healthById.get(p.id)} />
+                <ProjectCard
+                  key={p.id}
+                  project={p}
+                  health={healthById.get(p.id)}
+                  github={githubStatuses[p.id]}
+                />
               ))}
             </div>
           </section>
