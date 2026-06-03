@@ -17,6 +17,7 @@ import { NeedsAttention } from "@/components/studio/needs-attention";
 import { SignalsPanel } from "@/components/studio/signals-panel";
 import { RecentActivity } from "@/components/studio/recent-activity";
 import { MonthlySpend } from "@/components/studio/monthly-spend";
+import { LatestReview } from "@/components/studio/latest-review";
 import { Greeting } from "@/components/studio/greeting";
 
 export default async function StudioPage() {
@@ -84,6 +85,7 @@ export default async function StudioPage() {
 
         {/* Right column */}
         <div className="flex flex-col gap-5">
+          <LatestReview />
           <CurrentFocus />
           <MonthlySpend />
         </div>

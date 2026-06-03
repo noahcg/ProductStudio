@@ -48,10 +48,13 @@ import type { VercelProjectStatus, DeploymentHealth } from "../integrations/verc
 import { getSupabase } from "../integrations/supabase/provider";
 import type { SupabaseProjectStatus, SupabaseHealth } from "../integrations/supabase/types";
 import { computeDomainSignals, domainHealthByProject, type DomainHealth } from "../domains/monitor";
+import { generateWeeklyReview } from "../review/engine";
+import type { WeeklyReview, StoredReview, ReviewPeriodKey } from "../review/types";
 import { withSource, activeSource } from "./source";
 import type { DataSource } from "./source";
 import { alerts } from "./alerts";
 import { profile, weeklySummary } from "./profile";
+import { storedReviews } from "./reviews";
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 const sum = (ns: number[]) => ns.reduce((a, b) => a + b, 0);
@@ -237,6 +240,26 @@ export async function getSupabaseHealthByProject(): Promise<Record<string, Supab
     }
     return out;
   });
+}
+
+// ---- Weekly Founder Review (deterministic synthesis; no AI) ----
+
+/**
+ * Generate the current Weekly Founder Review from existing Product Studio data
+ * (the full Signals → Health pipeline + integrations). Deterministic: same data
+ * + clock → identical review. Default period is the last 7 days.
+ */
+export async function getWeeklyReview(periodKey: ReviewPeriodKey = "7d"): Promise<WeeklyReview> {
+  return withSource(async (s) => generateWeeklyReview(await pipeline(s), periodKey));
+}
+
+/**
+ * Previously-generated reviews (history). Mock mode returns the stored fixture;
+ * Supabase mode would read the `reviews` table. The current review is generated
+ * live by `getWeeklyReview`.
+ */
+export async function getReviewHistory(): Promise<StoredReview[]> {
+  return storedReviews;
 }
 
 /** Full Focus Engine result — current focus, ranking, scores, reasons. */
