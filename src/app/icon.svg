@@ -1,0 +1,18 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ps-bg" x1="3" y1="2" x2="29" y2="30" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#283143"/>
+      <stop offset="1" stop-color="#11151e"/>
+    </linearGradient>
+    <radialGradient id="ps-glow" cx="0.5" cy="0.3" r="0.7">
+      <stop stop-color="#ffffff" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="32" height="32" rx="7.5" fill="url(#ps-bg)"/>
+  <rect width="32" height="32" rx="7.5" fill="url(#ps-glow)"/>
+  <!-- Layered studio stack: a portfolio of products -->
+  <path d="M16 7 L25 12 L16 17 L7 12 Z" fill="#eef1f6"/>
+  <path d="M7 16 L16 21 L25 16" stroke="#eef1f6" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" fill="none" opacity="0.62"/>
+  <path d="M7 20 L16 25 L25 20" stroke="#eef1f6" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" fill="none" opacity="0.32"/>
+</svg>
