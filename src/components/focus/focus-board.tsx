@@ -13,7 +13,7 @@ import {
   Sparkles,
   ArrowRight,
 } from "lucide-react";
-import type { Task, TaskInput, TaskStatus, Project, Milestone } from "@/lib/domain";
+import type { Task, TaskInput, TaskStatus, Project, Milestone, Domain } from "@/lib/domain";
 import type { ProjectFocus } from "@/lib/focus/engine";
 import type { ProjectHealth } from "@/lib/health/engine";
 import { taskStats } from "@/lib/tasks/stats";
@@ -23,6 +23,7 @@ import { ProgressRing } from "@/components/donut";
 import { projectIcons } from "@/components/icons";
 import { TaskForm } from "./task-form";
 import { HealthSummary } from "./health-summary";
+import { DomainPanel } from "./domain-panel";
 import {
   createTaskAction,
   updateTaskAction,
@@ -50,12 +51,14 @@ export function FocusBoard({
   milestones,
   tasks,
   health,
+  domains,
 }: {
   projects: Project[];
   ranked: ProjectFocus[];
   milestones: Milestone[];
   tasks: Task[];
   health: ProjectHealth[];
+  domains: Domain[];
 }) {
   const params = useSearchParams();
   const [selectedId, setSelectedId] = useState(params.get("project") ?? ranked[0]?.project.id ?? "");
@@ -81,6 +84,7 @@ export function FocusBoard({
   const milestoneTasks = milestone ? optimistic.filter((t) => t.milestoneId === milestone.id) : [];
   const stats = taskStats(milestoneTasks);
   const selectedHealth = health.find((h) => h.project.id === selectedId);
+  const selectedDomains = domains.filter((d) => d.projectId === selectedId);
 
   function close() {
     setModal({ mode: "closed" });
@@ -253,6 +257,7 @@ export function FocusBoard({
           </Card>
 
           {selectedHealth && <HealthSummary health={selectedHealth} />}
+          <DomainPanel domains={selectedDomains} />
           </div>
         </div>
       )}

@@ -43,6 +43,7 @@ import { computeHealth, type ProjectHealth } from "../health/engine";
 import { computeSignals, type GeneratedSignal } from "../signals/engine";
 import { getGitHub } from "../integrations/github/provider";
 import type { GitHubProjectStatus } from "../integrations/github/types";
+import { computeDomainSignals, domainHealthByProject, type DomainHealth } from "../domains/monitor";
 import { withSource, activeSource } from "./source";
 import type { DataSource } from "./source";
 import { alerts } from "./alerts";
@@ -112,6 +113,15 @@ export async function getDomains(): Promise<Domain[]> {
   return withSource((s) => s.domains());
 }
 
+export async function getDomainsForProject(projectId: string): Promise<Domain[]> {
+  return withSource(async (s) => (await s.domains()).filter((d) => d.projectId === projectId));
+}
+
+/** Per-project worst domain health, for the Studio cards. */
+export async function getDomainHealthByProject(): Promise<Record<string, DomainHealth>> {
+  return withSource(async (s) => domainHealthByProject(await s.domains()));
+}
+
 // ---- Focus (derived view: top project's active milestone + its tasks) ----
 
 const EMPTY_FOCUS: Focus = {
@@ -148,7 +158,8 @@ async function pipeline(
   const github = await getGitHub(projects);
   const activity = mergeActivity(baseActivity, github.events);
   const generatedSignals = [
-    ...computeSignals({ projects, milestones, roadmap, tasks, decisions, activity, expenses, domains }),
+    ...computeSignals({ projects, milestones, roadmap, tasks, decisions, activity, expenses }),
+    ...computeDomainSignals(domains), // domain monitoring
     ...github.signals,
   ];
 

@@ -1,4 +1,4 @@
-import { Check, AlertTriangle, ArrowRight } from "lucide-react";
+import { Check, AlertTriangle, ArrowRight, Globe } from "lucide-react";
 import {
   getSignals,
   getIntegrations,
@@ -22,6 +22,8 @@ export default async function SignalsPage() {
     getGeneratedSignals(),
   ]);
   const needsAttention = generated.filter((s) => s.severity === "warning" || s.severity === "critical").length;
+  const domainSignals = generated.filter((s) => s.source === "domain_monitor");
+  const operationalSignals = generated.filter((s) => s.source !== "domain_monitor");
 
   return (
     <div>
@@ -42,11 +44,11 @@ export default async function SignalsPage() {
           <Card>
             <CardHeader
               title="Generated signals"
-              action={<span className="text-xs text-muted">{generated.length} observation{generated.length === 1 ? "" : "s"}</span>}
+              action={<span className="text-xs text-muted">{operationalSignals.length} observation{operationalSignals.length === 1 ? "" : "s"}</span>}
             />
-            {generated.length > 0 ? (
+            {operationalSignals.length > 0 ? (
               <ul className="space-y-2 p-5 pt-3">
-                {generated.map((s) => {
+                {operationalSignals.map((s) => {
                   const project = s.projectId ? projectMap.get(s.projectId) : undefined;
                   return (
                     <li key={s.id} className="rounded-xl border border-line bg-surface-2/40 p-3.5">
@@ -71,6 +73,47 @@ export default async function SignalsPage() {
               </ul>
             ) : (
               <p className="p-8 text-center text-sm text-muted">No operational signals — everything looks clear.</p>
+            )}
+          </Card>
+
+          {/* Domain signals (Domain Monitoring Service) */}
+          <Card>
+            <CardHeader
+              title="Domain signals"
+              action={
+                <span className="flex items-center gap-1.5 text-xs text-muted">
+                  <Globe className="h-3.5 w-3.5" />
+                  {domainSignals.length} observation{domainSignals.length === 1 ? "" : "s"}
+                </span>
+              }
+            />
+            {domainSignals.length > 0 ? (
+              <ul className="space-y-2 p-5 pt-3">
+                {domainSignals.map((s) => {
+                  const project = s.projectId ? projectMap.get(s.projectId) : undefined;
+                  return (
+                    <li key={s.id} className="rounded-xl border border-line bg-surface-2/40 p-3.5">
+                      <div className="flex items-start gap-3">
+                        <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", severityMeta[s.severity].dot)} />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-semibold text-fg">{s.title}</span>
+                            <SeverityBadge severity={s.severity} />
+                            <span className="text-[11px] text-faint">· {project?.name ?? "Studio"}</span>
+                          </div>
+                          <p className="mt-0.5 text-xs text-muted">{s.description}</p>
+                          <p className="mt-1 flex items-start gap-1.5 text-xs text-faint">
+                            <ArrowRight className="mt-0.5 h-3 w-3 shrink-0 text-accent" />
+                            {s.recommendation}
+                          </p>
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="p-8 text-center text-sm text-muted">No domain issues — all domains healthy.</p>
             )}
           </Card>
 

@@ -17,7 +17,6 @@ import type {
   Domain,
   SpendTrendPoint,
 } from "../domain";
-import { daysUntil } from "../utils";
 import type { DataSource } from "./source";
 
 /**
@@ -160,8 +159,11 @@ function mapDomain(r: Row): Domain {
     name: s(r.name),
     registrar: opt(r.registrar),
     integration: (opt(r.integration_key) as Domain["integration"]) ?? undefined,
-    expiresInDays: r.expires_at ? daysUntil(s(r.expires_at)) : undefined,
-    status: r.status as Domain["status"],
+    expiresAt: opt(r.expires_at),
+    autoRenew: r.auto_renew == null ? undefined : Boolean(r.auto_renew),
+    sslStatus: (opt(r.ssl_status) as Domain["sslStatus"]) ?? undefined,
+    notes: opt(r.notes),
+    lastCheckedAt: opt(r.last_checked_at),
   };
 }
 

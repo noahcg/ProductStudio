@@ -1,10 +1,15 @@
 import type { Domain } from "../domain";
 
 /**
- * Domains owned by projects. First-class entity (previously a string on
- * Project). Registered/monitored via the Cloudflare integration. The
- * WardrobeHarmony domain is the one nearing renewal that drives the
- * Needs Attention alert.
+ * Domains owned by projects (one per project). Realistic, varied monitoring
+ * states relative to the studio clock (2026-06-07):
+ *  - Home Cooked     : expires in ~18 days → expiration WARNING
+ *  - WardrobeHarmony : SSL invalid → CRITICAL
+ *  - PersonalTrainer : expires in ~45 days (WATCH) + auto-renew off (WARNING)
+ *  - Cascade Lounge  : healthy
+ *
+ * `expiresAt` is the stored fact; days remaining is computed by the monitoring
+ * service, never stored.
  */
 export const domains: Domain[] = [
   {
@@ -13,25 +18,43 @@ export const domains: Domain[] = [
     name: "tryhomecooked.com",
     registrar: "Cloudflare",
     integration: "cloudflare",
-    expiresInDays: 327,
-    status: "healthy",
+    expiresAt: "2026-06-25",
+    autoRenew: true,
+    sslStatus: "healthy",
+    lastCheckedAt: "2026-06-07T06:00:00",
   },
   {
     id: "dom-wardrobe-harmony",
     projectId: "wardrobe-harmony",
-    name: "wardrobeharmony.com",
+    name: "wardrobeharmony.app",
+    registrar: "Namecheap",
+    integration: "cloudflare",
+    expiresAt: "2026-10-05",
+    autoRenew: true,
+    sslStatus: "invalid",
+    notes: "Certificate failed to renew after DNS change.",
+    lastCheckedAt: "2026-06-07T06:00:00",
+  },
+  {
+    id: "dom-personal-trainer",
+    projectId: "personal-trainer",
+    name: "personaltrainer.app",
     registrar: "Cloudflare",
     integration: "cloudflare",
-    expiresInDays: 41,
-    status: "expiring",
+    expiresAt: "2026-07-22",
+    autoRenew: false,
+    sslStatus: "healthy",
+    lastCheckedAt: "2026-06-07T06:00:00",
   },
   {
     id: "dom-cascade-lounge",
     projectId: "cascade-lounge",
-    name: "cascadelounge.co",
+    name: "thecascadelounge.com",
     registrar: "Cloudflare",
     integration: "cloudflare",
-    expiresInDays: 198,
-    status: "healthy",
+    expiresAt: "2026-12-24",
+    autoRenew: true,
+    sslStatus: "healthy",
+    lastCheckedAt: "2026-06-07T06:00:00",
   },
 ];

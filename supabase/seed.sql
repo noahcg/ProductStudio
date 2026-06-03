@@ -168,12 +168,14 @@ insert into expenses (project_id, integration_key, service, category, amount, po
   ((select id from projects where slug = 'cascade-lounge'),   'cloudflare', 'cascadelounge.co',    'Domains',   3.20, 7);
 
 -- -----------------------------------------------------------------------------
--- domains (expires_at = studio anchor 2026-06-07 + the mock's expiresInDays)
+-- domains (one per project; varied monitoring states. expires_at is the stored
+-- fact — days remaining is computed, never stored. `status` is legacy/unused.)
 -- -----------------------------------------------------------------------------
-insert into domains (project_id, name, registrar, integration_key, expires_at, status) values
-  ((select id from projects where slug = 'home-cooked'),      'tryhomecooked.com',   'Cloudflare', 'cloudflare', DATE '2026-06-07' + 327, 'healthy'),
-  ((select id from projects where slug = 'wardrobe-harmony'), 'wardrobeharmony.com', 'Cloudflare', 'cloudflare', DATE '2026-06-07' + 41,  'expiring'),
-  ((select id from projects where slug = 'cascade-lounge'),   'cascadelounge.co',    'Cloudflare', 'cloudflare', DATE '2026-06-07' + 198, 'healthy');
+insert into domains (project_id, name, registrar, integration_key, expires_at, status, auto_renew, ssl_status, notes, last_checked_at) values
+  ((select id from projects where slug = 'home-cooked'),      'tryhomecooked.com',    'Cloudflare', 'cloudflare', DATE '2026-06-07' + 18,  'expiring', true,  'healthy', null,                                                  '2026-06-07 06:00:00'),
+  ((select id from projects where slug = 'wardrobe-harmony'), 'wardrobeharmony.app',  'Namecheap',  'cloudflare', DATE '2026-06-07' + 120, 'healthy',  true,  'invalid', 'Certificate failed to renew after DNS change.',        '2026-06-07 06:00:00'),
+  ((select id from projects where slug = 'personal-trainer'), 'personaltrainer.app',  'Cloudflare', 'cloudflare', DATE '2026-06-07' + 45,  'healthy',  false, 'healthy', null,                                                  '2026-06-07 06:00:00'),
+  ((select id from projects where slug = 'cascade-lounge'),   'thecascadelounge.com', 'Cloudflare', 'cloudflare', DATE '2026-06-07' + 200, 'healthy',  true,  'healthy', null,                                                  '2026-06-07 06:00:00');
 
 -- -----------------------------------------------------------------------------
 -- expense_snapshots (6-month spend history → Money trend chart)
