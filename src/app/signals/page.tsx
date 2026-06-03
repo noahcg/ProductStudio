@@ -1,35 +1,79 @@
 import { Check, AlertTriangle, ArrowRight } from "lucide-react";
-import { getSignals, getIntegrations, getActivity, getAlerts, getProjectMap } from "@/lib/data";
+import {
+  getSignals,
+  getIntegrations,
+  getActivity,
+  getAlerts,
+  getProjectMap,
+  getGeneratedSignals,
+} from "@/lib/data";
 import { Card, CardHeader, Badge, PageHeading, StatusDot, LinkButton } from "@/components/ui";
 import { integrationIcons, activityIcons } from "@/components/icons";
 import { relativeTime, cn } from "@/lib/utils";
+import { severityMeta, SeverityBadge } from "@/components/signals/severity";
 
 export default async function SignalsPage() {
-  const [signals, integrations, activity, alerts, projectMap] = await Promise.all([
+  const [signals, integrations, activity, alerts, projectMap, generated] = await Promise.all([
     getSignals(),
     getIntegrations(),
     getActivity(),
     getAlerts(),
     getProjectMap(),
+    getGeneratedSignals(),
   ]);
-  const allOk = signals.every((s) => s.level === "ok");
-  const warnings = signals.filter((s) => s.level !== "ok").length;
+  const needsAttention = generated.filter((s) => s.severity === "warning" || s.severity === "critical").length;
 
   return (
     <div>
       <PageHeading
         title="Signals"
-        subtitle="Infrastructure health, integrations, and operational alerts in one place."
+        subtitle="Operational signals generated from your own data, plus infrastructure health."
         right={
           <span className="flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-medium text-muted">
-            <StatusDot tone={allOk ? "ok" : "warn"} />
-            {allOk ? "All systems operational" : `${warnings} need attention`}
+            <StatusDot tone={needsAttention === 0 ? "ok" : "warn"} />
+            {needsAttention === 0 ? "Nothing needs attention" : `${needsAttention} need attention`}
           </span>
         }
       />
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="flex flex-col gap-5">
+          {/* Generated operational signals (Signals Engine) */}
+          <Card>
+            <CardHeader
+              title="Generated signals"
+              action={<span className="text-xs text-muted">{generated.length} observation{generated.length === 1 ? "" : "s"}</span>}
+            />
+            {generated.length > 0 ? (
+              <ul className="space-y-2 p-5 pt-3">
+                {generated.map((s) => {
+                  const project = s.projectId ? projectMap.get(s.projectId) : undefined;
+                  return (
+                    <li key={s.id} className="rounded-xl border border-line bg-surface-2/40 p-3.5">
+                      <div className="flex items-start gap-3">
+                        <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", severityMeta[s.severity].dot)} />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-semibold text-fg">{s.title}</span>
+                            <SeverityBadge severity={s.severity} />
+                            <span className="text-[11px] text-faint">· {project?.name ?? "Studio"}</span>
+                          </div>
+                          <p className="mt-0.5 text-xs text-muted">{s.description}</p>
+                          <p className="mt-1 flex items-start gap-1.5 text-xs text-faint">
+                            <ArrowRight className="mt-0.5 h-3 w-3 shrink-0 text-accent" />
+                            {s.recommendation}
+                          </p>
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="p-8 text-center text-sm text-muted">No operational signals — everything looks clear.</p>
+            )}
+          </Card>
+
           {/* Service health */}
           <Card>
             <CardHeader title="Service health" />

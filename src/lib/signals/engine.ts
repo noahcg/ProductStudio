@@ -1,0 +1,323 @@
+import type {
+  Project,
+  Milestone,
+  RoadmapItem,
+  Task,
+  Decision,
+  Activity,
+  Expense,
+  Domain,
+} from "../domain";
+import { now as studioNow } from "../clock";
+import { taskStats } from "../tasks/stats";
+
+/**
+ * The Signals Engine — deterministic, no AI/LLM, no external integrations.
+ *
+ * Generates operational signals (observations) from Product Studio's own data.
+ * Pipeline: Product Data → Signals Engine → Health Engine → Focus Engine → UI.
+ * Same inputs + clock → identical output.
+ */
+export interface SignalsInput {
+  projects: Project[];
+  milestones: Milestone[];
+  roadmap: RoadmapItem[];
+  tasks: Task[];
+  decisions: Decision[];
+  activity: Activity[];
+  expenses: Expense[];
+  domains: Domain[];
+}
+
+export type SignalSeverity = "info" | "watch" | "warning" | "critical";
+
+export type GeneratedSignalType =
+  | "project_inactivity"
+  | "project_dormant"
+  | "roadmap_no_now"
+  | "roadmap_too_many_now"
+  | "roadmap_no_next"
+  | "milestone_none_active"
+  | "milestone_no_tasks"
+  | "tasks_blocked"
+  | "tasks_critical_priority"
+  | "tasks_overdue"
+  | "tasks_too_many_open"
+  | "decisions_none"
+  | "decisions_stale"
+  | "money_monthly_high"
+  | "money_ai_high"
+  | "domain_renewal";
+
+export interface GeneratedSignal {
+  id: string;
+  projectId?: string;
+  type: GeneratedSignalType;
+  severity: SignalSeverity;
+  title: string;
+  description: string;
+  recommendation: string;
+  source: "signals_engine";
+  createdAt: string;
+  metadata?: Record<string, unknown>;
+}
+
+export const SEVERITY_RANK: Record<SignalSeverity, number> = {
+  critical: 4,
+  warning: 3,
+  watch: 2,
+  info: 1,
+};
+
+// Tunable thresholds (deterministic).
+const TH = {
+  inactivityDays: 14,
+  dormantDays: 30,
+  tooManyNow: 4,
+  tooManyOpenTasks: 12,
+  staleDecisionDays: 90,
+  monthlyWatch: 40,
+  monthlyWarning: 50,
+  aiWatch: 12,
+  aiWarning: 20,
+  domainWarning: 30,
+  domainWatch: 45,
+} as const;
+
+function daysSince(iso: string, now: Date): number {
+  return Math.round((now.getTime() - new Date(iso).getTime()) / 86_400_000);
+}
+const plural = (n: number) => (n === 1 ? "" : "s");
+const money = (n: number) => `$${n.toFixed(2)}`;
+
+export function computeSignals(input: SignalsInput, now: Date = studioNow()): GeneratedSignal[] {
+  const createdAt = now.toISOString();
+  const out: GeneratedSignal[] = [];
+
+  const sig = (
+    type: GeneratedSignalType,
+    severity: SignalSeverity,
+    projectId: string | undefined,
+    title: string,
+    description: string,
+    recommendation: string,
+    metadata?: Record<string, unknown>
+  ) =>
+    out.push({
+      id: `${type}:${projectId ?? "studio"}`,
+      projectId,
+      type,
+      severity,
+      title,
+      description,
+      recommendation,
+      source: "signals_engine",
+      createdAt,
+      metadata,
+    });
+
+  for (const p of input.projects) {
+    const pTasks = input.tasks.filter((t) => t.projectId === p.id);
+    const pMilestones = input.milestones.filter((m) => m.projectId === p.id);
+    const activeMilestone = pMilestones.find((m) => m.status === "active");
+    const milestoneTasks = activeMilestone
+      ? pTasks.filter((t) => t.milestoneId === activeMilestone.id)
+      : [];
+    const stats = taskStats(pTasks, now);
+
+    // --- Project Momentum (uses the canonical last-activity snapshot) ---
+    const idle = daysSince(p.lastActivityIso, now);
+    if (idle >= TH.dormantDays) {
+      sig(
+        "project_dormant",
+        "critical",
+        p.id,
+        `${p.name} appears dormant`,
+        `No activity has been recorded in ${idle} days.`,
+        "Decide whether to revive, pause, or archive this project.",
+        { idleDays: idle }
+      );
+    } else if (idle >= TH.inactivityDays) {
+      sig(
+        "project_inactivity",
+        "warning",
+        p.id,
+        `${p.name} has no recent activity`,
+        `No activity has been recorded in ${idle} days.`,
+        "Review the roadmap or schedule a small task to maintain momentum.",
+        { idleDays: idle }
+      );
+    }
+
+    // --- Roadmap ---
+    const nowItems = input.roadmap.filter((r) => r.projectId === p.id && r.column === "now");
+    const nextItems = input.roadmap.filter((r) => r.projectId === p.id && r.column === "next");
+    if (nowItems.length === 0) {
+      sig(
+        "roadmap_no_now",
+        "warning",
+        p.id,
+        `${p.name} has nothing in Now`,
+        "The Now column is empty, so there is no committed near-term work.",
+        "Pull the most important Next item into Now.",
+        { nowCount: 0 }
+      );
+    } else if (nowItems.length > TH.tooManyNow) {
+      sig(
+        "roadmap_too_many_now",
+        "watch",
+        p.id,
+        `${p.name} has too many Now items`,
+        `${nowItems.length} items are in Now — focus may be spread thin.`,
+        "Move lower-priority items back to Next.",
+        { nowCount: nowItems.length }
+      );
+    }
+    if (nextItems.length === 0) {
+      sig(
+        "roadmap_no_next",
+        "watch",
+        p.id,
+        `${p.name} has no Next items`,
+        "Nothing is queued after the current cycle.",
+        "Add a couple of Next items so the roadmap has runway.",
+        { nextCount: 0 }
+      );
+    }
+
+    // --- Milestones ---
+    if (!activeMilestone) {
+      sig(
+        "milestone_none_active",
+        "warning",
+        p.id,
+        `${p.name} has no active milestone`,
+        "There is no milestone currently marked active to anchor execution.",
+        "Activate the milestone you are working toward.",
+        {}
+      );
+    } else if (milestoneTasks.length === 0) {
+      sig(
+        "milestone_no_tasks",
+        "watch",
+        p.id,
+        `“${activeMilestone.title}” has no tasks`,
+        "The active milestone has no tasks tracking its progress.",
+        "Break the milestone into a few concrete tasks.",
+        { milestoneId: activeMilestone.id }
+      );
+    }
+
+    // --- Tasks ---
+    if (stats.blocked > 0) {
+      sig(
+        "tasks_blocked",
+        "warning",
+        p.id,
+        `${stats.blocked} blocked task${plural(stats.blocked)} on ${p.name}`,
+        `${stats.blocked} task${plural(stats.blocked)} cannot proceed until unblocked.`,
+        "Clear the blockers or note what they depend on.",
+        { blocked: stats.blocked }
+      );
+    }
+    const criticalTasks = pTasks.filter((t) => t.priority === "critical" && t.status !== "completed").length;
+    if (criticalTasks > 0) {
+      sig(
+        "tasks_critical_priority",
+        "warning",
+        p.id,
+        `${criticalTasks} critical-priority task${plural(criticalTasks)} on ${p.name}`,
+        `${criticalTasks} open task${plural(criticalTasks)} are marked critical priority.`,
+        "Make sure critical-priority work is the current focus.",
+        { criticalTasks }
+      );
+    }
+    if (stats.overdue > 0) {
+      sig(
+        "tasks_overdue",
+        "warning",
+        p.id,
+        `${stats.overdue} overdue task${plural(stats.overdue)} on ${p.name}`,
+        `${stats.overdue} task${plural(stats.overdue)} are past their target date.`,
+        "Reschedule or finish the overdue tasks.",
+        { overdue: stats.overdue }
+      );
+    }
+    const openTasks = pTasks.filter((t) => t.status !== "completed").length;
+    if (openTasks > TH.tooManyOpenTasks) {
+      sig(
+        "tasks_too_many_open",
+        "watch",
+        p.id,
+        `${p.name} has ${openTasks} open tasks`,
+        "A large number of open tasks can dilute focus.",
+        "Complete, defer, or drop tasks to keep the list manageable.",
+        { openTasks }
+      );
+    }
+
+    // --- Decisions ---
+    const pDecisions = input.decisions.filter((d) => d.projectId === p.id);
+    if (pDecisions.length === 0) {
+      sig(
+        "decisions_none",
+        "info",
+        p.id,
+        `${p.name} has no recorded decisions`,
+        "No product decisions have been captured for this project.",
+        "Log key calls so the reasoning is remembered later.",
+        {}
+      );
+    } else {
+      const latest = pDecisions.reduce((max, d) => (new Date(d.dateIso) > new Date(max) ? d.dateIso : max), pDecisions[0].dateIso);
+      const since = daysSince(latest, now);
+      if (since >= TH.staleDecisionDays) {
+        sig(
+          "decisions_stale",
+          "watch",
+          p.id,
+          `${p.name} has no recent decisions`,
+          `The last decision was logged ${since} days ago.`,
+          "Revisit open questions and capture any new calls.",
+          { sinceDays: since }
+        );
+      }
+    }
+  }
+
+  // --- Money (studio-level) ---
+  const monthly = input.expenses.reduce((s, e) => s + e.amount, 0);
+  if (monthly > TH.monthlyWarning) {
+    sig("money_monthly_high", "warning", undefined, "Monthly spend is high", `Total monthly spend is ${money(monthly)}.`, "Review hosting and tooling costs for savings.", { amount: monthly });
+  } else if (monthly > TH.monthlyWatch) {
+    sig("money_monthly_high", "watch", undefined, "Monthly spend is climbing", `Total monthly spend is ${money(monthly)}.`, "Keep an eye on recurring costs.", { amount: monthly });
+  }
+  const ai = input.expenses.filter((e) => e.category === "AI Tools").reduce((s, e) => s + e.amount, 0);
+  if (ai > TH.aiWarning) {
+    sig("money_ai_high", "warning", undefined, "AI spend is high", `AI tooling spend is ${money(ai)} this month.`, "Check OpenAI/Anthropic usage for runaway costs.", { amount: ai });
+  } else if (ai > TH.aiWatch) {
+    sig("money_ai_high", "watch", undefined, "AI spend worth watching", `AI tooling spend is ${money(ai)} this month.`, "Monitor model usage as features grow.", { amount: ai });
+  }
+
+  // --- Domain renewals ---
+  for (const d of input.domains) {
+    if (d.expiresInDays == null) continue;
+    if (d.expiresInDays < TH.domainWarning) {
+      sig("domain_renewal", "warning", d.projectId, `${d.name} renews soon`, `The domain renews in ${d.expiresInDays} days.`, "Confirm auto-renew or renew manually.", { domain: d.name, days: d.expiresInDays });
+    } else if (d.expiresInDays < TH.domainWatch) {
+      sig("domain_renewal", "watch", d.projectId, `${d.name} renewal approaching`, `The domain renews in ${d.expiresInDays} days.`, "Confirm auto-renew is enabled.", { domain: d.name, days: d.expiresInDays });
+    }
+  }
+
+  // Deterministic order: severity desc, then project, then type.
+  return out.sort(
+    (a, b) =>
+      SEVERITY_RANK[b.severity] - SEVERITY_RANK[a.severity] ||
+      (a.projectId ?? "").localeCompare(b.projectId ?? "") ||
+      a.type.localeCompare(b.type)
+  );
+}
+
+export function signalsForProject(signals: GeneratedSignal[], projectId: string): GeneratedSignal[] {
+  return signals.filter((s) => s.projectId === projectId);
+}

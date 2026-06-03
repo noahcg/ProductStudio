@@ -40,6 +40,7 @@ import type {
 import { categoryColor } from "../constants/palette";
 import { computeFocus, type FocusInput, type FocusResult } from "../focus/engine";
 import { computeHealth, type ProjectHealth } from "../health/engine";
+import { computeSignals, type GeneratedSignal } from "../signals/engine";
 import { withSource, activeSource } from "./source";
 import type { DataSource } from "./source";
 import { alerts } from "./alerts";
@@ -120,34 +121,55 @@ const EMPTY_FOCUS: Focus = {
   tasks: [],
 };
 
-/** Gather every input the Focus Engine needs from a source. */
-async function focusInput(s: DataSource): Promise<FocusInput> {
-  const [projects, milestones, roadmap, tasks, decisions, activity, signals] = await Promise.all([
-    s.projects(),
-    s.milestones(),
-    s.roadmap(),
-    s.tasks(),
-    s.decisions(),
-    s.activity(),
-    s.signals(),
-  ]);
-  return { projects, milestones, roadmap, tasks, decisions, activity, signals };
+/**
+ * Gather every input the Signals → Health → Focus pipeline needs, then run the
+ * Signals Engine once so its output feeds Health and Focus.
+ */
+async function pipeline(s: DataSource): Promise<FocusInput & { generatedSignals: GeneratedSignal[] }> {
+  const [projects, milestones, roadmap, tasks, decisions, activity, signals, expenses, domains] =
+    await Promise.all([
+      s.projects(),
+      s.milestones(),
+      s.roadmap(),
+      s.tasks(),
+      s.decisions(),
+      s.activity(),
+      s.signals(),
+      s.expenses(),
+      s.domains(),
+    ]);
+  const generatedSignals = computeSignals({
+    projects,
+    milestones,
+    roadmap,
+    tasks,
+    decisions,
+    activity,
+    expenses,
+    domains,
+  });
+  return { projects, milestones, roadmap, tasks, decisions, activity, signals, generatedSignals };
+}
+
+/** Operational signals generated from Product Studio's own data. */
+export async function getGeneratedSignals(): Promise<GeneratedSignal[]> {
+  return withSource(async (s) => (await pipeline(s)).generatedSignals);
 }
 
 /** Full Focus Engine result — current focus, ranking, scores, reasons. */
 export async function getFocusResult(): Promise<FocusResult> {
-  return withSource(async (s) => computeFocus(await focusInput(s)));
+  return withSource(async (s) => computeFocus(await pipeline(s)));
 }
 
 /** Project Health Engine result — per-project score, status, category breakdown. */
 export async function getProjectHealth(): Promise<ProjectHealth[]> {
-  return withSource(async (s) => computeHealth(await focusInput(s)));
+  return withSource(async (s) => computeHealth(await pipeline(s)));
 }
 
 /** The Current Focus, shaped as the Focus view the Studio/Focus panels render. */
 export async function getFocus(): Promise<Focus> {
   return withSource(async (s) => {
-    const input = await focusInput(s);
+    const input = await pipeline(s);
     const cur = computeFocus(input).current;
     if (!cur) return EMPTY_FOCUS;
     if (!cur.milestone) return { ...EMPTY_FOCUS, projectId: cur.project.id, title: cur.project.name };

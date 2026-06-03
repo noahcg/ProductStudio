@@ -11,6 +11,7 @@ import { now as studioNow } from "../clock";
 import { relativeTime } from "../utils";
 import { taskStats, type TaskStats } from "../tasks/stats";
 import { computeHealth, type ProjectHealth } from "../health/engine";
+import type { GeneratedSignal } from "../signals/engine";
 
 /**
  * The Focus Engine — deterministic, no AI/LLM.
@@ -29,6 +30,7 @@ export interface FocusInput {
   decisions: Decision[];
   activity: Activity[];
   signals: Signal[];
+  generatedSignals?: GeneratedSignal[];
 }
 
 export interface FocusSignal {

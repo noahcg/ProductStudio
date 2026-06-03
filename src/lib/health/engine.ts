@@ -10,6 +10,7 @@ import type {
 import { now as studioNow } from "../clock";
 import { relativeTime } from "../utils";
 import { taskStats } from "../tasks/stats";
+import type { GeneratedSignal } from "../signals/engine";
 
 /**
  * The Project Health Engine — deterministic, no AI/LLM, no random values.
@@ -26,6 +27,8 @@ export interface HealthInput {
   decisions: Decision[];
   activity: Activity[];
   signals: Signal[];
+  /** Operational signals from the Signals Engine — the Signals category summarizes these. */
+  generatedSignals?: GeneratedSignal[];
 }
 
 export type HealthCategory = "momentum" | "execution" | "planning" | "focus" | "risk" | "signals";
@@ -153,17 +156,20 @@ function projectHealth(project: Project, input: HealthInput, now: Date): Project
         ? { text: `${overdue} overdue task${plural(overdue)}`, good: false }
         : { text: "No blockers", good: true };
 
-  // ---- Signals: warnings / criticals ----
-  const projectSignals = input.signals.filter((s) => s.projectId === project.id);
-  const warns = projectSignals.filter((s) => s.level === "warn").length;
-  const crits = projectSignals.filter((s) => s.level === "down").length;
-  const signalsScore = clamp(100 - warns * 20 - crits * 40);
+  // ---- Signals: summarize the Signals Engine's operational signals ----
+  const projectSignals = (input.generatedSignals ?? []).filter((s) => s.projectId === project.id);
+  const watch = projectSignals.filter((s) => s.severity === "watch").length;
+  const warning = projectSignals.filter((s) => s.severity === "warning").length;
+  const critical = projectSignals.filter((s) => s.severity === "critical").length;
+  const signalsScore = clamp(100 - watch * 5 - warning * 15 - critical * 30);
   const signalsReason: HealthReason =
-    crits > 0
-      ? { text: `${crits} critical signal${plural(crits)}`, good: false }
-      : warns > 0
-        ? { text: `${warns} warning signal${plural(warns)}`, good: false }
-        : { text: "Signals healthy", good: true };
+    critical > 0
+      ? { text: `${critical} critical signal${plural(critical)}`, good: false }
+      : warning > 0
+        ? { text: `${warning} warning signal${plural(warning)}`, good: false }
+        : watch > 0
+          ? { text: `${watch} signal${plural(watch)} to watch`, good: false }
+          : { text: "No operational warnings", good: true };
 
   const categories: CategoryScore[] = [
     { category: "momentum", label: "Momentum", score: momentum, reason: momentumReason },
