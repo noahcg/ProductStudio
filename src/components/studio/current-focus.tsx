@@ -24,7 +24,7 @@ export async function CurrentFocus() {
 
       <p className="mt-4 text-sm leading-relaxed text-muted">{focus.summary}</p>
 
-      <ul className="mt-5 space-y-3">
+      <ul className="mt-5 space-y-3 pb-5">
         {focus.tasks.slice(0, 4).map((task) => {
           const done = task.status === "completed";
           return (
@@ -49,7 +49,7 @@ export async function CurrentFocus() {
         })}
       </ul>
 
-      <div className="mt-auto flex items-center justify-between border-t border-line pt-4">
+      <div className="mt-auto flex items-center justify-between border-t border-line pt-5">
         <div className="text-sm">
           <span className="text-lg font-semibold text-fg">{remaining}</span>{" "}
           <span className="text-muted">Tasks remaining</span>

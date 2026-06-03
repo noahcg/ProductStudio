@@ -21,7 +21,7 @@ export async function MonthlySpend() {
         <div className="text-xs text-muted">Total this month</div>
       </div>
 
-      <div className="mt-4 flex items-center gap-5">
+      <div className="mt-4 flex items-center gap-5 pb-5">
         <Donut segments={spend} />
         <ul className="flex-1 space-y-3">
           {spend.map((cat) => {
@@ -38,7 +38,7 @@ export async function MonthlySpend() {
         </ul>
       </div>
 
-      <div className="mt-auto border-t border-line pt-4">
+      <div className="mt-auto border-t border-line pt-5">
         <LinkButton href="/money" className="text-sm">
           View all expenses <ArrowRight className="h-3.5 w-3.5" />
         </LinkButton>

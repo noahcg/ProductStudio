@@ -63,16 +63,22 @@ export function ProjectCard({
     >
       {/* Header / image area */}
       <div className={cn("relative h-[92px] bg-gradient-to-br", accent.gradient)}>
-        <div className="absolute right-3 top-3">
-          <Badge tone={statusTone[project.status]}>{project.status}</Badge>
+        {/* Top badges share one row so they never overlap; health truncates
+            before it can collide with the status badge on narrow cards. */}
+        <div className="absolute inset-x-3 top-3 flex items-start justify-between gap-2">
+          {health ? (
+            <HealthBadge
+              score={health.score}
+              status={health.status}
+              className="min-w-0 rounded-full bg-bg/55 px-2 py-1 backdrop-blur-sm"
+            />
+          ) : (
+            <span />
+          )}
+          <Badge tone={statusTone[project.status]} className="shrink-0">
+            {project.status}
+          </Badge>
         </div>
-        {health && (
-          <HealthBadge
-            score={health.score}
-            status={health.status}
-            className="absolute left-3 top-3 rounded-full bg-bg/55 px-2 py-1 backdrop-blur-sm"
-          />
-        )}
         <div
           className={cn(
             "absolute -bottom-5 left-4 grid h-12 w-12 place-items-center rounded-full bg-surface-2 ring-2",

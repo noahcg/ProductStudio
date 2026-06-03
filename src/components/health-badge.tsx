@@ -23,9 +23,9 @@ export function HealthBadge({
   const t = tone[status];
   return (
     <span className={cn("inline-flex items-center gap-1.5 text-xs", className)}>
-      <span className={cn("h-1.5 w-1.5 rounded-full", t.dot)} />
-      <span className="font-semibold text-fg">{score}</span>
-      {showStatus && <span className={t.text}>{status}</span>}
+      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", t.dot)} />
+      <span className="shrink-0 font-semibold text-fg">{score}</span>
+      {showStatus && <span className={cn("min-w-0 truncate", t.text)}>{status}</span>}
     </span>
   );
 }
