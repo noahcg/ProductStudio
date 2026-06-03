@@ -59,7 +59,7 @@ export function ProjectCard({
   return (
     <Link
       href={`/focus?project=${project.id}`}
-      className="group flex flex-col overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface/70 transition-colors hover:border-line-strong"
+      className="project-card group flex flex-col overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface/70 transition-colors hover:border-line-strong"
     >
       {/* Header / image area */}
       <div className={cn("relative h-[92px] bg-gradient-to-br", accent.gradient)}>

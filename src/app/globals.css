@@ -54,23 +54,33 @@
 }
 
 .light {
-  --bg: #f4f5f8;
+  /* Light — cool, sophisticated neutrals (not pastel). Crisp white cards float
+     over a soft, slightly cool page so they pop; the atmosphere sky shows in the
+     gaps. Deep slate text + confident, deeper accents (no candy brights). */
+  --bg: #e9ecf2;
   --bg-elevated: #ffffff;
   --surface: #ffffff;
-  --surface-2: #f7f8fb;
-  --line: #e4e7ee;
-  --line-strong: #d4d9e3;
+  --surface-2: #f4f6fa;
+  --line: #e2e6ee;
+  --line-strong: #ccd2de;
 
-  --fg: #161a22;
-  --muted: #5d6577;
-  --faint: #8b93a7;
+  --fg: #1a1f2b;
+  --muted: #525b6f;
+  --faint: #828b9f;
 
-  --accent: #6d49f5;
+  --accent: #5b45e0;
   --accent-fg: #ffffff;
-  --success: #12a37c;
-  --warning: #c87d10;
-  --danger: #d83a55;
-  --info: #2f6fe0;
+  --success: #0c9b72;
+  --warning: #b1740a;
+  --danger: #d23350;
+  --info: #2a62d8;
+}
+
+/* Studio project cards use a translucent surface so the dark atmosphere bleeds
+   through nicely. In light mode that same translucency reads as washed-out over
+   the bright sky, so keep them near-opaque there. Dark keeps the glassy /70. */
+html.light .project-card {
+  background-color: color-mix(in srgb, var(--surface) 93%, transparent);
 }
 
 * {
@@ -106,11 +116,11 @@ body {
 /* ===========================================================================
    Atmospheric background system.
 
-   A single static image of Noah's product studio at dusk sits fixed behind the
-   whole app, dimmed by a dark overlay and tied into the palette by a barely-felt
-   blue gradient. The UI stays the hero. Only shown in dark theme when the
-   "Background Atmosphere" appearance setting is enabled; otherwise the solid
-   `.studio-backdrop` shows. Readability always wins.
+   A time-of-day photo of Noah's product studio sits fixed behind the whole app.
+   In dark theme it's dimmed by a dark overlay; in light theme it's washed by a
+   bright overlay so the sky is felt, not focused on — the UI stays the hero in
+   both. Shown in either theme when the "Background Atmosphere" appearance setting
+   is enabled. Cards are opaque/near-opaque, so readability always wins.
    =========================================================================== */
 .atmosphere {
   position: fixed;
@@ -161,8 +171,21 @@ html.tod-night .atmosphere {
     rgba(5, 11, 24, 0.78);
 }
 
-html.dark:not(.atmosphere-off) .atmosphere {
+html.dark:not(.atmosphere-off) .atmosphere,
+html.light:not(.atmosphere-off) .atmosphere {
   display: block;
+}
+
+/* Light theme — a bright, airy wash instead of the dark overlay, so the sky
+   reads as a soft backdrop behind crisp white cards. Lighter through the middle
+   (where the image shows between cards), heavier top/bottom to protect headings
+   and the dense footer content. */
+html.light .atmosphere::after {
+  background:
+    radial-gradient(110% 80% at 50% -10%, rgba(255, 255, 255, 0.42), transparent 60%),
+    radial-gradient(120% 95% at 50% 118%, rgba(232, 236, 243, 0.82), transparent 72%),
+    linear-gradient(180deg, rgba(233, 237, 244, 0.74) 0%, rgba(233, 237, 244, 0.42) 30%, rgba(233, 237, 244, 0.46) 62%, rgba(233, 237, 244, 0.8) 100%),
+    rgba(233, 237, 244, 0.34);
 }
 
 /* Mobile: drop the (expensive) heavy header blur; the image stays visible. */
