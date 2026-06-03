@@ -45,6 +45,8 @@ import { getGitHub } from "../integrations/github/provider";
 import type { GitHubProjectStatus } from "../integrations/github/types";
 import { getVercel } from "../integrations/vercel/provider";
 import type { VercelProjectStatus, DeploymentHealth } from "../integrations/vercel/types";
+import { getSupabase } from "../integrations/supabase/provider";
+import type { SupabaseProjectStatus, SupabaseHealth } from "../integrations/supabase/types";
 import { computeDomainSignals, domainHealthByProject, type DomainHealth } from "../domains/monitor";
 import { withSource, activeSource } from "./source";
 import type { DataSource } from "./source";
@@ -157,13 +159,18 @@ async function pipeline(
 
   // Integrations: augment the activity feed, signals, and health. Integrations
   // are never the source of truth for the domain entities above.
-  const [github, vercel] = await Promise.all([getGitHub(projects), getVercel(projects)]);
-  const activity = mergeActivity(baseActivity, [...github.events, ...vercel.events]);
+  const [github, vercel, supabase] = await Promise.all([
+    getGitHub(projects),
+    getVercel(projects),
+    getSupabase(projects),
+  ]);
+  const activity = mergeActivity(baseActivity, [...github.events, ...vercel.events, ...supabase.events]);
   const generatedSignals = [
     ...computeSignals({ projects, milestones, roadmap, tasks, decisions, activity, expenses }),
     ...computeDomainSignals(domains), // domain monitoring
     ...github.signals,
     ...vercel.signals, // vercel deployment monitoring
+    ...supabase.signals, // supabase operational monitoring
   ];
 
   return {
@@ -177,6 +184,7 @@ async function pipeline(
     generatedSignals,
     github: github.statuses,
     vercel: vercel.statuses,
+    supabase: supabase.statuses,
   };
 }
 
@@ -207,6 +215,23 @@ export async function getDeploymentHealthByProject(): Promise<Record<string, Dep
   return withSource(async (s) => {
     const { statuses } = await getVercel(await s.projects());
     const out: Record<string, DeploymentHealth> = {};
+    for (const [projectId, st] of Object.entries(statuses)) {
+      if (st.connected) out[projectId] = st.health;
+    }
+    return out;
+  });
+}
+
+/** Lightweight per-project Supabase operational status for the Studio cards + Focus. */
+export async function getSupabaseStatuses(): Promise<Record<string, SupabaseProjectStatus>> {
+  return withSource(async (s) => getSupabase(await s.projects()).then((sb) => sb.statuses));
+}
+
+/** Per-project Supabase health (Healthy/Warning/Critical) for the Studio cards. */
+export async function getSupabaseHealthByProject(): Promise<Record<string, SupabaseHealth>> {
+  return withSource(async (s) => {
+    const { statuses } = await getSupabase(await s.projects());
+    const out: Record<string, SupabaseHealth> = {};
     for (const [projectId, st] of Object.entries(statuses)) {
       if (st.connected) out[projectId] = st.health;
     }
@@ -297,8 +322,13 @@ export async function getIntegrations(): Promise<Integration[]> {
 export async function getActivity(): Promise<Activity[]> {
   return withSource(async (s) => {
     const projects = await s.projects();
-    const [base, github, vercel] = await Promise.all([s.activity(), getGitHub(projects), getVercel(projects)]);
-    return mergeActivity(base, [...github.events, ...vercel.events]);
+    const [base, github, vercel, supabase] = await Promise.all([
+      s.activity(),
+      getGitHub(projects),
+      getVercel(projects),
+      getSupabase(projects),
+    ]);
+    return mergeActivity(base, [...github.events, ...vercel.events, ...supabase.events]);
   });
 }
 

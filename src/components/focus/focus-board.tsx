@@ -17,6 +17,7 @@ import type { Task, TaskInput, TaskStatus, Project, Milestone, Domain } from "@/
 import type { ProjectFocus } from "@/lib/focus/engine";
 import type { ProjectHealth } from "@/lib/health/engine";
 import type { VercelProjectStatus } from "@/lib/integrations/vercel/types";
+import type { SupabaseProjectStatus } from "@/lib/integrations/supabase/types";
 import { taskStats } from "@/lib/tasks/stats";
 import { cn } from "@/lib/utils";
 import { Card, Badge, PageHeading, Button } from "@/components/ui";
@@ -26,6 +27,7 @@ import { TaskForm } from "./task-form";
 import { HealthSummary } from "./health-summary";
 import { DomainPanel } from "./domain-panel";
 import { DeploymentPanel } from "./deployment-panel";
+import { SupabasePanel } from "./supabase-panel";
 import {
   createTaskAction,
   updateTaskAction,
@@ -55,6 +57,7 @@ export function FocusBoard({
   health,
   domains,
   vercel,
+  supabase,
 }: {
   projects: Project[];
   ranked: ProjectFocus[];
@@ -63,6 +66,7 @@ export function FocusBoard({
   health: ProjectHealth[];
   domains: Domain[];
   vercel: Record<string, VercelProjectStatus>;
+  supabase: Record<string, SupabaseProjectStatus>;
 }) {
   const params = useSearchParams();
   const [selectedId, setSelectedId] = useState(params.get("project") ?? ranked[0]?.project.id ?? "");
@@ -90,6 +94,7 @@ export function FocusBoard({
   const selectedHealth = health.find((h) => h.project.id === selectedId);
   const selectedDomains = domains.filter((d) => d.projectId === selectedId);
   const selectedDeployment = vercel[selectedId];
+  const selectedSupabase = supabase[selectedId];
 
   function close() {
     setModal({ mode: "closed" });
@@ -263,6 +268,7 @@ export function FocusBoard({
 
           {selectedHealth && <HealthSummary health={selectedHealth} />}
           <DeploymentPanel status={selectedDeployment} />
+          <SupabasePanel status={selectedSupabase} />
           <DomainPanel domains={selectedDomains} />
           </div>
         </div>

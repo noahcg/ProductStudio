@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { AlertTriangle, GitBranch, Globe, Rocket } from "lucide-react";
+import { AlertTriangle, GitBranch, Globe, Rocket, Database } from "lucide-react";
 import type { Project } from "@/lib/types";
 import type { ProjectHealth } from "@/lib/health/engine";
 import type { GitHubProjectStatus } from "@/lib/integrations/github/types";
 import type { DomainHealth } from "@/lib/domains/monitor";
 import type { DeploymentHealth } from "@/lib/integrations/vercel/types";
+import type { SupabaseHealth } from "@/lib/integrations/supabase/types";
 import { cn, relativeTime } from "@/lib/utils";
 import { projectIcons, accentStyles } from "@/components/icons";
 import { Badge } from "@/components/ui";
@@ -18,6 +19,12 @@ const domainTone: Record<DomainHealth, string> = {
 };
 
 const deploymentTone: Record<DeploymentHealth, string> = {
+  Healthy: "text-success",
+  Warning: "text-warning",
+  Critical: "text-danger",
+};
+
+const supabaseTone: Record<SupabaseHealth, string> = {
   Healthy: "text-success",
   Warning: "text-warning",
   Critical: "text-danger",
@@ -37,12 +44,14 @@ export function ProjectCard({
   github,
   domainHealth,
   deploymentHealth,
+  supabaseHealth,
 }: {
   project: Project;
   health?: ProjectHealth;
   github?: GitHubProjectStatus;
   domainHealth?: DomainHealth;
   deploymentHealth?: DeploymentHealth;
+  supabaseHealth?: SupabaseHealth;
 }) {
   const Icon = projectIcons[project.icon];
   const accent = accentStyles[project.accent];
@@ -78,7 +87,7 @@ export function ProjectCard({
         <h3 className="text-[15px] font-semibold tracking-tight text-fg">{project.name}</h3>
         <p className="text-xs text-muted">{project.tagline}</p>
 
-        {(github?.connected || domainHealth || deploymentHealth) && (
+        {(github?.connected || domainHealth || deploymentHealth || supabaseHealth) && (
           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-faint">
             {github?.connected && (
               <span className="flex items-center gap-1.5">
@@ -91,6 +100,14 @@ export function ProjectCard({
                 <Rocket className="h-3 w-3" />
                 <span className={cn(deploymentHealth !== "Healthy" && deploymentTone[deploymentHealth])}>
                   Deployment {deploymentHealth}
+                </span>
+              </span>
+            )}
+            {supabaseHealth && (
+              <span className="flex items-center gap-1.5">
+                <Database className="h-3 w-3" />
+                <span className={cn(supabaseHealth !== "Healthy" && supabaseTone[supabaseHealth])}>
+                  Supabase {supabaseHealth}
                 </span>
               </span>
             )}

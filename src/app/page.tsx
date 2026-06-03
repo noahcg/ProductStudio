@@ -7,6 +7,7 @@ import {
   getGitHubStatuses,
   getDomainHealthByProject,
   getDeploymentHealthByProject,
+  getSupabaseHealthByProject,
 } from "@/lib/data";
 import { LinkButton } from "@/components/ui";
 import { StatRow } from "@/components/studio/stat-row";
@@ -19,16 +20,25 @@ import { MonthlySpend } from "@/components/studio/monthly-spend";
 import { Greeting } from "@/components/studio/greeting";
 
 export default async function StudioPage() {
-  const [projects, weekly, profile, health, githubStatuses, domainHealth, deploymentHealth] =
-    await Promise.all([
-      getProjects(),
-      getWeeklySummary(),
-      getProfile(),
-      getProjectHealth(),
-      getGitHubStatuses(),
-      getDomainHealthByProject(),
-      getDeploymentHealthByProject(),
-    ]);
+  const [
+    projects,
+    weekly,
+    profile,
+    health,
+    githubStatuses,
+    domainHealth,
+    deploymentHealth,
+    supabaseHealth,
+  ] = await Promise.all([
+    getProjects(),
+    getWeeklySummary(),
+    getProfile(),
+    getProjectHealth(),
+    getGitHubStatuses(),
+    getDomainHealthByProject(),
+    getDeploymentHealthByProject(),
+    getSupabaseHealthByProject(),
+  ]);
   const healthById = new Map(health.map((h) => [h.project.id, h]));
 
   return (
@@ -59,6 +69,7 @@ export default async function StudioPage() {
                   github={githubStatuses[p.id]}
                   domainHealth={domainHealth[p.id]}
                   deploymentHealth={deploymentHealth[p.id]}
+                  supabaseHealth={supabaseHealth[p.id]}
                 />
               ))}
             </div>

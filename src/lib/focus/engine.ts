@@ -14,6 +14,7 @@ import { computeHealth, type ProjectHealth } from "../health/engine";
 import type { GeneratedSignal } from "../signals/engine";
 import type { GitHubProjectStatus } from "../integrations/github/types";
 import type { VercelProjectStatus } from "../integrations/vercel/types";
+import type { SupabaseProjectStatus } from "../integrations/supabase/types";
 
 /**
  * The Focus Engine — deterministic, no AI/LLM.
@@ -35,6 +36,7 @@ export interface FocusInput {
   generatedSignals?: GeneratedSignal[];
   github?: Record<string, GitHubProjectStatus>;
   vercel?: Record<string, VercelProjectStatus>;
+  supabase?: Record<string, SupabaseProjectStatus>;
 }
 
 export interface FocusSignal {
@@ -193,9 +195,10 @@ function scoreProject(
     reasons.push(`Health ${health.score}/100 — ${health.status}`);
   }
 
-  // --- Deployment readiness (Vercel) — influences focus via the health risk it
-  // already injected; here it only surfaces an explainable reason + steers the
-  // recommendation. It does not override milestone progress.
+  // --- Deployment readiness (Vercel) + platform health (Supabase) — influence
+  // focus via the health risk they already injected; here they surface an
+  // explainable reason + steer the recommendation. They do not override
+  // milestone progress.
   const vc = input.vercel?.[project.id];
   const deployBlocking = vc?.health === "Critical";
   if (vc) {
@@ -203,10 +206,20 @@ function scoreProject(
     else if (vc.state === "failed") reasons.push("Last deployment failed");
   }
 
+  const sb = input.supabase?.[project.id];
+  const supabaseBlocking = sb?.health === "Critical";
+  if (sb) {
+    if (sb.state === "unavailable") reasons.push("Supabase project unavailable");
+    else if (supabaseBlocking) reasons.push(`Supabase ${sb.headline ?? "capacity critical"}`);
+    else if (sb.health === "Warning") reasons.push(`Supabase ${sb.headline ?? "usage high"}`);
+  }
+
   const score = Math.round(signals.reduce((sum, sig) => sum + sig.delta, 0));
   const recommendation = deployBlocking
     ? `Resolve the failing deployment for ${project.name} before continuing milestone work.`
-    : recommend(project, milestone, stats, nextUp(project, milestone, input));
+    : supabaseBlocking
+      ? `Resolve the Supabase issue (${sb!.headline ?? "capacity critical"}) for ${project.name} before adding major new features.`
+      : recommend(project, milestone, stats, nextUp(project, milestone, input));
 
   return { project, milestone, stats, score, tasksRemaining: stats.remaining, lastActivityIso, signals, reasons, recommendation };
 }
