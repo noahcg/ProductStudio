@@ -43,6 +43,8 @@ import { computeHealth, type ProjectHealth } from "../health/engine";
 import { computeSignals, type GeneratedSignal } from "../signals/engine";
 import { getGitHub } from "../integrations/github/provider";
 import type { GitHubProjectStatus } from "../integrations/github/types";
+import { getVercel } from "../integrations/vercel/provider";
+import type { VercelProjectStatus, DeploymentHealth } from "../integrations/vercel/types";
 import { computeDomainSignals, domainHealthByProject, type DomainHealth } from "../domains/monitor";
 import { withSource, activeSource } from "./source";
 import type { DataSource } from "./source";
@@ -153,14 +155,15 @@ async function pipeline(
       s.domains(),
     ]);
 
-  // GitHub integration: augments the activity feed, signals, and health.
-  // GitHub is never the source of truth for the domain entities above.
-  const github = await getGitHub(projects);
-  const activity = mergeActivity(baseActivity, github.events);
+  // Integrations: augment the activity feed, signals, and health. Integrations
+  // are never the source of truth for the domain entities above.
+  const [github, vercel] = await Promise.all([getGitHub(projects), getVercel(projects)]);
+  const activity = mergeActivity(baseActivity, [...github.events, ...vercel.events]);
   const generatedSignals = [
     ...computeSignals({ projects, milestones, roadmap, tasks, decisions, activity, expenses }),
     ...computeDomainSignals(domains), // domain monitoring
     ...github.signals,
+    ...vercel.signals, // vercel deployment monitoring
   ];
 
   return {
@@ -173,6 +176,7 @@ async function pipeline(
     signals,
     generatedSignals,
     github: github.statuses,
+    vercel: vercel.statuses,
   };
 }
 
@@ -191,6 +195,23 @@ export async function getGeneratedSignals(): Promise<GeneratedSignal[]> {
 /** Lightweight per-project GitHub status for the Studio cards. */
 export async function getGitHubStatuses(): Promise<Record<string, GitHubProjectStatus>> {
   return withSource(async (s) => getGitHub(await s.projects()).then((g) => g.statuses));
+}
+
+/** Lightweight per-project Vercel deployment status for the Studio cards. */
+export async function getVercelStatuses(): Promise<Record<string, VercelProjectStatus>> {
+  return withSource(async (s) => getVercel(await s.projects()).then((v) => v.statuses));
+}
+
+/** Per-project deployment health (Healthy/Warning/Critical) for the Studio cards. */
+export async function getDeploymentHealthByProject(): Promise<Record<string, DeploymentHealth>> {
+  return withSource(async (s) => {
+    const { statuses } = await getVercel(await s.projects());
+    const out: Record<string, DeploymentHealth> = {};
+    for (const [projectId, st] of Object.entries(statuses)) {
+      if (st.connected) out[projectId] = st.health;
+    }
+    return out;
+  });
 }
 
 /** Full Focus Engine result — current focus, ranking, scores, reasons. */
@@ -275,8 +296,9 @@ export async function getIntegrations(): Promise<Integration[]> {
 
 export async function getActivity(): Promise<Activity[]> {
   return withSource(async (s) => {
-    const [base, github] = await Promise.all([s.activity(), getGitHub(await s.projects())]);
-    return mergeActivity(base, github.events);
+    const projects = await s.projects();
+    const [base, github, vercel] = await Promise.all([s.activity(), getGitHub(projects), getVercel(projects)]);
+    return mergeActivity(base, [...github.events, ...vercel.events]);
   });
 }
 

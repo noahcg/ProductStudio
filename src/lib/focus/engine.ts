@@ -13,6 +13,7 @@ import { taskStats, type TaskStats } from "../tasks/stats";
 import { computeHealth, type ProjectHealth } from "../health/engine";
 import type { GeneratedSignal } from "../signals/engine";
 import type { GitHubProjectStatus } from "../integrations/github/types";
+import type { VercelProjectStatus } from "../integrations/vercel/types";
 
 /**
  * The Focus Engine — deterministic, no AI/LLM.
@@ -33,6 +34,7 @@ export interface FocusInput {
   signals: Signal[];
   generatedSignals?: GeneratedSignal[];
   github?: Record<string, GitHubProjectStatus>;
+  vercel?: Record<string, VercelProjectStatus>;
 }
 
 export interface FocusSignal {
@@ -191,8 +193,20 @@ function scoreProject(
     reasons.push(`Health ${health.score}/100 — ${health.status}`);
   }
 
+  // --- Deployment readiness (Vercel) — influences focus via the health risk it
+  // already injected; here it only surfaces an explainable reason + steers the
+  // recommendation. It does not override milestone progress.
+  const vc = input.vercel?.[project.id];
+  const deployBlocking = vc?.health === "Critical";
+  if (vc) {
+    if (deployBlocking) reasons.push(`Deployment failing (${vc.consecutiveFailures} in a row)`);
+    else if (vc.state === "failed") reasons.push("Last deployment failed");
+  }
+
   const score = Math.round(signals.reduce((sum, sig) => sum + sig.delta, 0));
-  const recommendation = recommend(project, milestone, stats, nextUp(project, milestone, input));
+  const recommendation = deployBlocking
+    ? `Resolve the failing deployment for ${project.name} before continuing milestone work.`
+    : recommend(project, milestone, stats, nextUp(project, milestone, input));
 
   return { project, milestone, stats, score, tasksRemaining: stats.remaining, lastActivityIso, signals, reasons, recommendation };
 }

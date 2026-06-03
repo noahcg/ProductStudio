@@ -12,6 +12,7 @@ import { relativeTime } from "../utils";
 import { taskStats } from "../tasks/stats";
 import type { GeneratedSignal } from "../signals/engine";
 import type { GitHubProjectStatus } from "../integrations/github/types";
+import type { VercelProjectStatus } from "../integrations/vercel/types";
 
 /**
  * The Project Health Engine — deterministic, no AI/LLM, no random values.
@@ -32,6 +33,8 @@ export interface HealthInput {
   generatedSignals?: GeneratedSignal[];
   /** GitHub status per project — influences Momentum + Execution only. */
   github?: Record<string, GitHubProjectStatus>;
+  /** Vercel deployment status per project — influences Momentum + Execution + Risk. */
+  vercel?: Record<string, VercelProjectStatus>;
 }
 
 export type HealthCategory = "momentum" | "execution" | "planning" | "focus" | "risk" | "signals";
@@ -99,10 +102,12 @@ function projectHealth(project: Project, input: HealthInput, now: Date): Project
   const stats = taskStats(milestoneTasks, now);
 
   // ---- Momentum: recent activity + recent task completion ----
-  // GitHub activity feeds Momentum + Execution (never planning/decisions/roadmap).
+  // GitHub + Vercel activity feeds Momentum + Execution (never planning/decisions/roadmap).
   const gh = input.github?.[project.id];
+  const vc = input.vercel?.[project.id];
   const projectActivity = input.activity.filter((a) => a.projectId === project.id);
-  const last = latestIso([...projectActivity.map((a) => a.whenIso), project.lastActivityIso, gh?.lastActivityIso]);
+  // A successful deployment counts as recent activity (the product shipped).
+  const last = latestIso([...projectActivity.map((a) => a.whenIso), project.lastActivityIso, gh?.lastActivityIso, vc?.lastReadyIso]);
   const idle = last ? daysSince(last, now) : Infinity;
   const recentCompleted = projectTasks.filter(
     (t) => t.status === "completed" && t.completedAt && daysSince(t.completedAt, now) <= 7
@@ -119,18 +124,23 @@ function projectHealth(project: Project, input: HealthInput, now: Date): Project
           ? { text: `No activity in ${idle} days`, good: false }
           : { text: `Recent activity (${relativeTime(last!, now)})`, good: true };
 
-  // ---- Execution: task + milestone completion (+ small GitHub shipping nudge) ----
+  // ---- Execution: task + milestone completion (+ small GitHub/Vercel shipping nudge) ----
   let execution: number;
   let executionReason: HealthReason;
   const ghBoost = gh ? Math.min(gh.commitsThisWeek, 6) : 0;
+  // A healthy, successful production deploy slightly raises confidence; a failing
+  // deploy slightly lowers it. Small + capped — tasks remain the driver. A stale
+  // "ready" (Warning health, e.g. no recent deploy) earns no boost.
+  const vcBoost = vc ? (vc.health === "Healthy" && vc.state === "ready" ? 4 : vc.state === "failed" ? -4 : 0) : 0;
+  const shipBoost = ghBoost + vcBoost;
   if (stats.total) {
-    execution = clamp(stats.progress - Math.max(0, stats.remaining - 6) * 4 + ghBoost);
+    execution = clamp(stats.progress - Math.max(0, stats.remaining - 6) * 4 + shipBoost);
     executionReason =
       stats.progress >= 50
         ? { text: `${stats.completed}/${stats.total} tasks complete (${stats.progress}%)`, good: true }
         : { text: `${stats.progress}% complete, ${stats.remaining} task${plural(stats.remaining)} remaining`, good: false };
   } else {
-    execution = clamp((milestone ? Math.min(milestone.progress, 50) : 10) + ghBoost);
+    execution = clamp((milestone ? Math.min(milestone.progress, 50) : 10) + shipBoost);
     executionReason = { text: "No tasks tracked yet", good: false };
   }
 
@@ -154,18 +164,25 @@ function projectHealth(project: Project, input: HealthInput, now: Date): Project
     ? { text: "Active milestone exists", good: true }
     : { text: milestones.length ? "Milestone not active yet" : "No active milestone", good: false };
 
-  // ---- Risk: blockers + overdue ----
+  // ---- Risk: blockers + overdue (+ deployment failures) ----
   const blocked = projectTasks.filter((t) => t.status === "blocked").length;
   const overdue = projectTasks.filter(
     (t) => t.status !== "completed" && t.targetDate && new Date(t.targetDate) < now
   ).length;
-  const risk = clamp(100 - blocked * 18 - overdue * 15);
+  // A broken deployment is a real, current risk to the product. Balanced so it
+  // dents — but does not destroy — health: critical (repeated failures) > single.
+  const deployRisk = vc?.health === "Critical" ? 30 : vc?.state === "failed" ? 14 : 0;
+  const risk = clamp(100 - blocked * 18 - overdue * 15 - deployRisk);
   const riskReason: HealthReason =
-    blocked > 0
-      ? { text: `${blocked} blocked task${plural(blocked)}`, good: false }
-      : overdue > 0
-        ? { text: `${overdue} overdue task${plural(overdue)}`, good: false }
-        : { text: "No blockers", good: true };
+    vc?.health === "Critical"
+      ? { text: `${vc.consecutiveFailures} failed deployments`, good: false }
+      : blocked > 0
+        ? { text: `${blocked} blocked task${plural(blocked)}`, good: false }
+        : overdue > 0
+          ? { text: `${overdue} overdue task${plural(overdue)}`, good: false }
+          : vc?.state === "failed"
+            ? { text: "Last deployment failed", good: false }
+            : { text: "No blockers", good: true };
 
   // ---- Signals: summarize the Signals Engine's operational signals ----
   const projectSignals = (input.generatedSignals ?? []).filter((s) => s.projectId === project.id);

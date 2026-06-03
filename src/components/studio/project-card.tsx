@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { AlertTriangle, GitBranch, Globe } from "lucide-react";
+import { AlertTriangle, GitBranch, Globe, Rocket } from "lucide-react";
 import type { Project } from "@/lib/types";
 import type { ProjectHealth } from "@/lib/health/engine";
 import type { GitHubProjectStatus } from "@/lib/integrations/github/types";
 import type { DomainHealth } from "@/lib/domains/monitor";
+import type { DeploymentHealth } from "@/lib/integrations/vercel/types";
 import { cn, relativeTime } from "@/lib/utils";
 import { projectIcons, accentStyles } from "@/components/icons";
 import { Badge } from "@/components/ui";
@@ -12,6 +13,12 @@ import { HealthBadge } from "@/components/health-badge";
 const domainTone: Record<DomainHealth, string> = {
   Healthy: "text-success",
   Watch: "text-info",
+  Warning: "text-warning",
+  Critical: "text-danger",
+};
+
+const deploymentTone: Record<DeploymentHealth, string> = {
+  Healthy: "text-success",
   Warning: "text-warning",
   Critical: "text-danger",
 };
@@ -29,11 +36,13 @@ export function ProjectCard({
   health,
   github,
   domainHealth,
+  deploymentHealth,
 }: {
   project: Project;
   health?: ProjectHealth;
   github?: GitHubProjectStatus;
   domainHealth?: DomainHealth;
+  deploymentHealth?: DeploymentHealth;
 }) {
   const Icon = projectIcons[project.icon];
   const accent = accentStyles[project.accent];
@@ -69,12 +78,20 @@ export function ProjectCard({
         <h3 className="text-[15px] font-semibold tracking-tight text-fg">{project.name}</h3>
         <p className="text-xs text-muted">{project.tagline}</p>
 
-        {(github?.connected || domainHealth) && (
+        {(github?.connected || domainHealth || deploymentHealth) && (
           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-faint">
             {github?.connected && (
               <span className="flex items-center gap-1.5">
                 <GitBranch className="h-3 w-3" />
                 {github.label}
+              </span>
+            )}
+            {deploymentHealth && (
+              <span className="flex items-center gap-1.5">
+                <Rocket className="h-3 w-3" />
+                <span className={cn(deploymentHealth !== "Healthy" && deploymentTone[deploymentHealth])}>
+                  Deployment {deploymentHealth}
+                </span>
               </span>
             )}
             {domainHealth && (

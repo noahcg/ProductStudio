@@ -1,4 +1,4 @@
-import { Check, AlertTriangle, ArrowRight, Globe } from "lucide-react";
+import { Check, AlertTriangle, ArrowRight, Globe, Rocket } from "lucide-react";
 import {
   getSignals,
   getIntegrations,
@@ -23,7 +23,10 @@ export default async function SignalsPage() {
   ]);
   const needsAttention = generated.filter((s) => s.severity === "warning" || s.severity === "critical").length;
   const domainSignals = generated.filter((s) => s.source === "domain_monitor");
-  const operationalSignals = generated.filter((s) => s.source !== "domain_monitor");
+  const deploymentSignals = generated.filter((s) => s.source === "vercel_integration");
+  const operationalSignals = generated.filter(
+    (s) => s.source !== "domain_monitor" && s.source !== "vercel_integration"
+  );
 
   return (
     <div>
@@ -114,6 +117,47 @@ export default async function SignalsPage() {
               </ul>
             ) : (
               <p className="p-8 text-center text-sm text-muted">No domain issues — all domains healthy.</p>
+            )}
+          </Card>
+
+          {/* Deployment signals (Vercel integration) */}
+          <Card>
+            <CardHeader
+              title="Deployment signals"
+              action={
+                <span className="flex items-center gap-1.5 text-xs text-muted">
+                  <Rocket className="h-3.5 w-3.5" />
+                  {deploymentSignals.length} observation{deploymentSignals.length === 1 ? "" : "s"}
+                </span>
+              }
+            />
+            {deploymentSignals.length > 0 ? (
+              <ul className="space-y-2 p-5 pt-3">
+                {deploymentSignals.map((s) => {
+                  const project = s.projectId ? projectMap.get(s.projectId) : undefined;
+                  return (
+                    <li key={s.id} className="rounded-xl border border-line bg-surface-2/40 p-3.5">
+                      <div className="flex items-start gap-3">
+                        <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", severityMeta[s.severity].dot)} />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-semibold text-fg">{s.title}</span>
+                            <SeverityBadge severity={s.severity} />
+                            <span className="text-[11px] text-faint">· {project?.name ?? "Studio"}</span>
+                          </div>
+                          <p className="mt-0.5 text-xs text-muted">{s.description}</p>
+                          <p className="mt-1 flex items-start gap-1.5 text-xs text-faint">
+                            <ArrowRight className="mt-0.5 h-3 w-3 shrink-0 text-accent" />
+                            {s.recommendation}
+                          </p>
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="p-8 text-center text-sm text-muted">No deployment issues — all deployments healthy.</p>
             )}
           </Card>
 

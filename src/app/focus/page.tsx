@@ -1,18 +1,27 @@
 import { Suspense } from "react";
 import { FocusBoard } from "@/components/focus/focus-board";
-import { getProjects, getMilestones, getTasks, getFocusResult, getProjectHealth, getDomains } from "@/lib/data";
+import {
+  getProjects,
+  getMilestones,
+  getTasks,
+  getFocusResult,
+  getProjectHealth,
+  getDomains,
+  getVercelStatuses,
+} from "@/lib/data";
 
 // Tasks are editable here — render per request so changes reflect immediately.
 export const dynamic = "force-dynamic";
 
 export default async function FocusPage() {
-  const [projects, milestones, tasks, result, health, domains] = await Promise.all([
+  const [projects, milestones, tasks, result, health, domains, vercel] = await Promise.all([
     getProjects(),
     getMilestones(),
     getTasks(),
     getFocusResult(),
     getProjectHealth(),
     getDomains(),
+    getVercelStatuses(),
   ]);
 
   return (
@@ -24,6 +33,7 @@ export default async function FocusPage() {
         tasks={tasks}
         health={health}
         domains={domains}
+        vercel={vercel}
       />
     </Suspense>
   );
