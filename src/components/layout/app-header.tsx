@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { AttentionInbox as Inbox } from "@/lib/attention/inbox";
 import { ThemeToggle } from "./theme-toggle";
 import { SettingsMenu } from "./settings-menu";
+import { AttentionInbox } from "./attention-inbox";
 
 const NAV = [
   { href: "/", label: "Studio" },
@@ -38,10 +39,10 @@ function useClock() {
 
 export function AppHeader({
   brand,
-  notifications,
+  inbox,
 }: {
   brand: string;
-  notifications: number;
+  inbox: Inbox;
 }) {
   const pathname = usePathname();
   const now = useClock();
@@ -100,15 +101,7 @@ export function AppHeader({
           </div>
           <ThemeToggle />
           <SettingsMenu />
-          <button
-            aria-label="Notifications"
-            className="relative grid h-10 w-10 place-items-center rounded-xl border border-line bg-surface text-muted transition-colors hover:text-fg"
-          >
-            <Bell className="h-[18px] w-[18px]" />
-            <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-accent text-[10px] font-semibold text-accent-fg">
-              {notifications}
-            </span>
-          </button>
+          <AttentionInbox inbox={inbox} />
         </div>
       </div>
     </header>

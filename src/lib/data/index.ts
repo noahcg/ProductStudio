@@ -50,6 +50,7 @@ import type { SupabaseProjectStatus, SupabaseHealth } from "../integrations/supa
 import { computeDomainSignals, domainHealthByProject, type DomainHealth } from "../domains/monitor";
 import { generateWeeklyReview } from "../review/engine";
 import type { WeeklyReview, StoredReview, ReviewPeriodKey } from "../review/types";
+import { buildAttentionInbox, type AttentionInbox } from "../attention/inbox";
 import { withSource, activeSource } from "./source";
 import type { DataSource } from "./source";
 import { alerts } from "./alerts";
@@ -260,6 +261,22 @@ export async function getWeeklyReview(periodKey: ReviewPeriodKey = "7d"): Promis
  */
 export async function getReviewHistory(): Promise<StoredReview[]> {
   return storedReviews;
+}
+
+// ---- Attention Inbox (header bell; derived from existing systems, no new store) ----
+
+/**
+ * The header bell's Attention Inbox — actionable signals + Weekly Review
+ * availability, derived from the existing generated-signals stream. One pipeline
+ * run; no new notifications table, no new route.
+ */
+export async function getAttentionInbox(): Promise<AttentionInbox> {
+  return withSource(async (s) => {
+    const data = await pipeline(s);
+    const review = generateWeeklyReview(data, "7d");
+    const names = new Map(data.projects.map((p) => [p.id, p.name]));
+    return buildAttentionInbox(data.generatedSignals, names, review);
+  });
 }
 
 /** Full Focus Engine result — current focus, ranking, scores, reasons. */
