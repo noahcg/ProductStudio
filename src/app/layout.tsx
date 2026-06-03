@@ -23,9 +23,12 @@ export const metadata: Metadata = {
   description: "Your personal founder operating system — what should I work on next?",
 };
 
-// Set the atmosphere class before paint (default enabled → no class; only adds
-// `atmosphere-off` when the user disabled it) to avoid any flash.
-const atmosphereScript = `(function(){try{if(localStorage.getItem('ps-atmosphere')==='off'){document.documentElement.classList.add('atmosphere-off');}}catch(e){}})();`;
+// Set atmosphere + time-of-day classes before paint (to avoid any flash):
+//  - `atmosphere-off` when the user disabled the background.
+//  - `tod-{sunrise|afternoon|sunset|night}` from the viewer's local hour, which
+//    swaps the background image (same time-of-day idea as the greeting). Default
+//    (JS off) stays night via CSS.
+const atmosphereScript = `(function(){try{var d=document.documentElement;if(localStorage.getItem('ps-atmosphere')==='off'){d.classList.add('atmosphere-off');}var h=new Date().getHours();var t=(h>=5&&h<11)?'sunrise':(h>=11&&h<17)?'afternoon':(h>=17&&h<20)?'sunset':'night';d.classList.add('tod-'+t);}catch(e){}})();`;
 
 export default async function RootLayout({
   children,

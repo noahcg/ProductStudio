@@ -119,11 +119,28 @@ body {
   pointer-events: none;
   display: none; /* shown only under html.dark:not(.atmosphere-off) */
 
-  /* Layer 0 — the image (cover, center, no-repeat). Optimized WebP. */
-  background-image: url("/atmosphere.webp");
+  /* Layer 0 — the image (cover, center, no-repeat). Optimized WebP.
+     Defaults to night; a time-of-day class on <html> swaps it (see below). */
+  background-image: url("/atmosphere-night.webp");
   background-size: cover;
   background-position: center center;
   background-repeat: no-repeat;
+}
+
+/* Time-of-day backgrounds — the class is set before paint by the inline script
+   in layout.tsx from the viewer's local hour (same idea as the greeting).
+   Default (no class / JS off) stays night. */
+html.tod-sunrise .atmosphere {
+  background-image: url("/atmosphere-sunrise.webp");
+}
+html.tod-afternoon .atmosphere {
+  background-image: url("/atmosphere-afternoon.webp");
+}
+html.tod-sunset .atmosphere {
+  background-image: url("/atmosphere-sunset.webp");
+}
+html.tod-night .atmosphere {
+  background-image: url("/atmosphere-night.webp");
 }
 
 /* Layers 1 + 2 — darkening overlay + Product-Studio atmospheric gradient.
@@ -139,9 +156,9 @@ body {
     radial-gradient(120% 75% at 50% -5%, rgba(28, 52, 96, 0.1), transparent 55%),
     radial-gradient(120% 90% at 50% 115%, rgba(5, 11, 24, 0.62), transparent 70%),
     linear-gradient(180deg, rgba(5, 11, 24, 0.5) 0%, rgba(5, 11, 24, 0.08) 28%, rgba(5, 11, 24, 0.08) 58%, rgba(5, 11, 24, 0.6) 100%),
-    /* Layer 1 — darkening base. Image recognizable but subdued; visibility
-       reduced ~25% from the first pass so it's felt, not focused on. */
-    rgba(5, 11, 24, 0.86);
+    /* Layer 1 — darkening base. Image recognizable but subdued; lowered slightly
+       so a touch more of the scene reads through while the UI stays the hero. */
+    rgba(5, 11, 24, 0.78);
 }
 
 html.dark:not(.atmosphere-off) .atmosphere {
@@ -153,7 +170,7 @@ html.dark:not(.atmosphere-off) .atmosphere {
   .atmosphere::after {
     background:
       linear-gradient(180deg, rgba(5, 11, 24, 0.5) 0%, rgba(5, 11, 24, 0.25) 40%, rgba(5, 11, 24, 0.62) 100%),
-      rgba(5, 11, 24, 0.88);
+      rgba(5, 11, 24, 0.80);
   }
 }
 
