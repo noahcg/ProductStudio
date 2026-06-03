@@ -82,19 +82,84 @@ html {
 }
 
 body {
-  background: var(--bg);
+  /* Transparent so the fixed background layers below show through. */
+  background: transparent;
   color: var(--fg);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-/* Subtle ambient gradient backdrop for the premium feel */
-.studio-backdrop {
+/* Base ambient gradient — always painted behind everything (and the sole
+   backdrop when the atmosphere is off or in light theme). Fixed full-screen. */
+.bg-base {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
   background:
     radial-gradient(900px 500px at 12% -8%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 60%),
     radial-gradient(800px 500px at 92% -10%, color-mix(in srgb, var(--info) 10%, transparent), transparent 55%),
     var(--bg);
+}
+
+/* ===========================================================================
+   Atmospheric background system.
+
+   A single static image of Noah's product studio at dusk sits fixed behind the
+   whole app, dimmed by a dark overlay and tied into the palette by a barely-felt
+   blue gradient. The UI stays the hero. Only shown in dark theme when the
+   "Background Atmosphere" appearance setting is enabled; otherwise the solid
+   `.studio-backdrop` shows. Readability always wins.
+   =========================================================================== */
+.atmosphere {
+  position: fixed;
+  inset: 0;
+  z-index: -1; /* above .bg-base (−2), below all content */
+  pointer-events: none;
+  display: none; /* shown only under html.dark:not(.atmosphere-off) */
+
+  /* Layer 0 — the image (cover, center, no-repeat). Optimized WebP. */
+  background-image: url("/atmosphere.webp");
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+}
+
+/* Layers 1 + 2 — darkening overlay + Product-Studio atmospheric gradient.
+   Image visibility has been reduced ~25% from the first pass (overlay 0.75 → ~0.82
+   net), so the scene is felt, not focused on. */
+.atmosphere::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    /* Layer 2 — atmosphere: a soft dark-blue glow up top + a heavier vignette
+       toward the bottom (where content is densest), keeping the sunset readable. */
+    radial-gradient(120% 75% at 50% -5%, rgba(28, 52, 96, 0.1), transparent 55%),
+    radial-gradient(120% 90% at 50% 115%, rgba(5, 11, 24, 0.62), transparent 70%),
+    linear-gradient(180deg, rgba(5, 11, 24, 0.5) 0%, rgba(5, 11, 24, 0.08) 28%, rgba(5, 11, 24, 0.08) 58%, rgba(5, 11, 24, 0.6) 100%),
+    /* Layer 1 — darkening base. Image recognizable but subdued; visibility
+       reduced ~25% from the first pass so it's felt, not focused on. */
+    rgba(5, 11, 24, 0.86);
+}
+
+html.dark:not(.atmosphere-off) .atmosphere {
+  display: block;
+}
+
+/* Mobile: drop the (expensive) heavy header blur; the image stays visible. */
+@media (max-width: 640px) {
+  .atmosphere::after {
+    background:
+      linear-gradient(180deg, rgba(5, 11, 24, 0.5) 0%, rgba(5, 11, 24, 0.25) 40%, rgba(5, 11, 24, 0.62) 100%),
+      rgba(5, 11, 24, 0.88);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* nothing animates here, but keep transitions calm */
+  .atmosphere { transition: none; }
 }
 
 ::selection {

@@ -23,6 +23,10 @@ export const metadata: Metadata = {
   description: "Your personal founder operating system — what should I work on next?",
 };
 
+// Set the atmosphere class before paint (default enabled → no class; only adds
+// `atmosphere-off` when the user disabled it) to avoid any flash.
+const atmosphereScript = `(function(){try{if(localStorage.getItem('ps-atmosphere')==='off'){document.documentElement.classList.add('atmosphere-off');}}catch(e){}})();`;
+
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
@@ -30,7 +34,11 @@ export default async function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning className={`${inter.variable} ${script.variable}`}>
-      <body className="min-h-screen studio-backdrop">
+      <body className="min-h-screen">
+        <script dangerouslySetInnerHTML={{ __html: atmosphereScript }} />
+        {/* Fixed background layers, behind all content. */}
+        <div className="bg-base" aria-hidden="true" />
+        <div className="atmosphere" aria-hidden="true" />
         <ThemeProvider>
           <AppHeader
             brand={profile.fullName}

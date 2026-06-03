@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./theme-toggle";
+import { SettingsMenu } from "./settings-menu";
 
 const NAV = [
   { href: "/", label: "Studio" },
@@ -97,6 +98,7 @@ export function AppHeader({
             </div>
           </div>
           <ThemeToggle />
+          <SettingsMenu />
           <button
             aria-label="Notifications"
             className="relative grid h-10 w-10 place-items-center rounded-xl border border-line bg-surface text-muted transition-colors hover:text-fg"
