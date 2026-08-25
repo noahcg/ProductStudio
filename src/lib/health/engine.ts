@@ -102,7 +102,7 @@ function projectHealth(project: Project, input: HealthInput, now: Date): Project
   const milestones = input.milestones.filter((m) => m.projectId === project.id);
   const milestone = milestones.find((m) => m.status === "active") ?? milestones[0];
   const milestoneTasks = milestone ? projectTasks.filter((t) => t.milestoneId === milestone.id) : projectTasks;
-  const stats = taskStats(milestoneTasks, now);
+  const stats = taskStats(milestoneTasks);
 
   // ---- Momentum: recent activity + recent task completion ----
   // GitHub + Vercel activity feeds Momentum + Execution (never planning/decisions/roadmap).
@@ -167,11 +167,8 @@ function projectHealth(project: Project, input: HealthInput, now: Date): Project
     ? { text: "Active milestone exists", good: true }
     : { text: milestones.length ? "Milestone not active yet" : "No active milestone", good: false };
 
-  // ---- Risk: blockers + overdue (+ deployment failures + platform health) ----
-  const blocked = projectTasks.filter((t) => t.status === "blocked").length;
-  const overdue = projectTasks.filter(
-    (t) => t.status !== "completed" && t.targetDate && new Date(t.targetDate) < now
-  ).length;
+  // ---- Risk: large open task pile (+ deployment failures + platform health) ----
+  const openTasks = projectTasks.filter((t) => t.status !== "completed").length;
   // A broken deployment is a real, current risk to the product. Balanced so it
   // dents — but does not destroy — health: critical (repeated failures) > single.
   const deployRisk = vc?.health === "Critical" ? 30 : vc?.state === "failed" ? 14 : 0;
@@ -189,7 +186,7 @@ function projectHealth(project: Project, input: HealthInput, now: Date): Project
           : sb?.health === "Warning"
             ? 10
             : 0;
-  const risk = clamp(100 - blocked * 18 - overdue * 15 - deployRisk - supabaseRisk);
+  const risk = clamp(100 - Math.max(0, openTasks - 12) * 4 - deployRisk - supabaseRisk);
   const riskReason: HealthReason =
     sb?.state === "unavailable"
       ? { text: "Supabase project unavailable", good: false }
@@ -197,15 +194,13 @@ function projectHealth(project: Project, input: HealthInput, now: Date): Project
         ? { text: `${vc.consecutiveFailures} failed deployments`, good: false }
         : sb?.health === "Critical"
           ? { text: `Supabase ${sb.headline ?? "capacity critical"}`, good: false }
-          : blocked > 0
-            ? { text: `${blocked} blocked task${plural(blocked)}`, good: false }
-            : overdue > 0
-              ? { text: `${overdue} overdue task${plural(overdue)}`, good: false }
-              : sb?.state === "degraded"
+          : openTasks > 12
+            ? { text: `${openTasks} open tasks`, good: false }
+            : sb?.state === "degraded"
                 ? { text: "Supabase project degraded", good: false }
                 : vc?.state === "failed"
                   ? { text: "Last deployment failed", good: false }
-                  : { text: "No blockers", good: true };
+                  : { text: "No major risks", good: true };
 
   // ---- Signals: summarize the Signals Engine's operational signals ----
   const projectSignals = (input.generatedSignals ?? []).filter((s) => s.projectId === project.id);

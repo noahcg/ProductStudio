@@ -3,7 +3,7 @@ export const maxDuration = 60;
 
 interface MeetingTask {
   title: string;
-  priority?: "low" | "medium" | "high" | "critical";
+  description?: string;
 }
 
 interface MeetingSummary {
@@ -96,7 +96,7 @@ Return JSON with this exact shape:
   "summary": "3-5 sentence plain-English summary",
   "clientContext": ["important client preferences, constraints, context"],
   "decisions": ["decisions made"],
-  "tasks": [{"title": "action item", "priority": "low|medium|high|critical"}],
+  "tasks": [{"title": "action item", "description": "optional implementation detail"}],
   "followUps": ["questions or follow-ups"]
 }
 
@@ -135,7 +135,7 @@ function normalizeSummary(input: Partial<MeetingSummary>): Omit<MeetingSummary, 
       ? input.tasks
           .map((task) => ({
             title: typeof task?.title === "string" ? task.title.trim() : "",
-            priority: normalizePriority(task?.priority),
+            description: typeof task?.description === "string" ? task.description.trim() : undefined,
           }))
           .filter((task) => task.title)
       : [],
@@ -145,11 +145,5 @@ function normalizeSummary(input: Partial<MeetingSummary>): Omit<MeetingSummary, 
 
 function stringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
-}
-
-function normalizePriority(value: unknown): MeetingTask["priority"] {
-  return value === "low" || value === "medium" || value === "high" || value === "critical"
-    ? value
-    : "medium";
 }
 

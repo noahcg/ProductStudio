@@ -213,7 +213,7 @@ export function ReviewView({
             <div className="grid grid-cols-2 gap-3 p-5 pt-3">
               <MiniStat label="Completed" value={review.tasks.completed} />
               <MiniStat label="Created" value={review.tasks.created} />
-              <MiniStat label="Blocked" value={review.tasks.blocked} warn={review.tasks.blocked > 0} />
+              <MiniStat label="Open" value={review.tasks.open} warn={review.tasks.open > 12} />
               <MiniStat label="Reopened" value={review.tasks.reopened} />
             </div>
           </Card>

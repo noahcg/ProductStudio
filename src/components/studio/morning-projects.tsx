@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowRight, CircleDot, ListTodo } from "lucide-react";
+import { ArrowRight, CircleDot, ListTodo } from "lucide-react";
 import { getMilestones, getProjects, getProjectHealth, getTasks } from "@/lib/data";
 import type { Project, Task } from "@/lib/domain";
 import { Card, LinkButton, Progress } from "@/components/ui";
@@ -7,17 +7,9 @@ import { accentStyles, projectIcons } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
 const statusOrder: Record<Task["status"], number> = {
-  blocked: 0,
-  in_progress: 1,
-  todo: 2,
+  in_progress: 0,
+  todo: 1,
   completed: 3,
-};
-
-const priorityOrder: Record<Task["priority"], number> = {
-  critical: 0,
-  high: 1,
-  medium: 2,
-  low: 3,
 };
 
 export async function MorningProjects() {
@@ -117,16 +109,11 @@ function ProjectTaskCard({
 }
 
 function TaskLine({ task }: { task: Task }) {
-  const blocked = task.status === "blocked";
   const active = task.status === "in_progress";
   return (
     <li className="flex items-start gap-2 rounded-md bg-surface-2/45 px-3 py-2 text-xs">
-      {blocked ? (
-        <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
-      ) : (
-        <CircleDot className={cn("mt-0.5 h-3.5 w-3.5 shrink-0", active ? "text-accent" : "text-faint")} />
-      )}
-      <span className={cn("min-w-0 flex-1 text-fg", blocked && "text-warning")}>{task.title}</span>
+      <CircleDot className={cn("mt-0.5 h-3.5 w-3.5 shrink-0", active ? "text-accent" : "text-faint")} />
+      <span className="min-w-0 flex-1 text-fg">{task.title}</span>
     </li>
   );
 }
@@ -137,6 +124,6 @@ function tasksForProject(tasks: Task[], projectId: string): Task[] {
     .sort((a, b) => {
       const byStatus = statusOrder[a.status] - statusOrder[b.status];
       if (byStatus !== 0) return byStatus;
-      return priorityOrder[a.priority] - priorityOrder[b.priority];
+      return a.createdAt.localeCompare(b.createdAt);
     });
 }

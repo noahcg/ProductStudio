@@ -74,10 +74,10 @@ function activeMilestoneFor(input: ReviewInput, projectId: string): Milestone | 
   return ms.find((m) => m.status === "active") ?? ms[0];
 }
 
-function progressOf(milestone: Milestone | undefined, tasks: Task[], now: Date): number {
+function progressOf(milestone: Milestone | undefined, tasks: Task[]): number {
   if (!milestone) return 0;
   const mt = tasks.filter((t) => t.milestoneId === milestone.id);
-  const stats = taskStats(mt, now);
+  const stats = taskStats(mt);
   return stats.total ? stats.progress : milestone.progress;
 }
 
@@ -126,8 +126,8 @@ export function generateWeeklyReview(
     const healthDelta = healthCurrent - healthPrevious;
 
     const milestone = activeMilestoneFor(input, p.id);
-    const milestoneProgressCurrent = progressOf(milestone, input.tasks, now);
-    const milestoneProgressPrevious = progressOf(milestone, previousTasks, start);
+    const milestoneProgressCurrent = progressOf(milestone, input.tasks);
+    const milestoneProgressPrevious = progressOf(milestone, previousTasks);
     const milestoneProgressDelta = milestoneProgressCurrent - milestoneProgressPrevious;
 
     const tasksCompleted = input.tasks.filter(
@@ -186,11 +186,11 @@ export function generateWeeklyReview(
     });
   }
 
-  // --- Task summary (created/reopened aren't time-stamped in the data → 0) ---
+  // --- Task summary ---
   const tasks = {
     completed: projects.reduce((n, pr) => n + pr.tasksCompleted, 0),
-    created: 0,
-    blocked: input.tasks.filter((t) => t.status === "blocked").length,
+    created: input.tasks.filter((t) => inWindow(t.createdAt)).length,
+    open: input.tasks.filter((t) => t.status !== "completed").length,
     reopened: 0,
   };
 

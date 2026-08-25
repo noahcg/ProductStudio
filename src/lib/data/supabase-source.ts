@@ -4,6 +4,7 @@ import type {
   Milestone,
   Task,
   TaskInput,
+  TaskSource,
   TaskStatus,
   RoadmapItem,
   RoadmapInput,
@@ -79,9 +80,26 @@ function mapTask(r: Row): Task {
     title: s(r.title),
     description: opt(r.description),
     status: r.status as Task["status"],
-    priority: r.priority as Task["priority"],
-    targetDate: opt(r.target_date),
+    createdAt: s(r.created_at),
     completedAt: opt(r.completed_at),
+    source: mapTaskSource(r),
+  };
+}
+
+function mapTaskSource(r: Row): Task["source"] {
+  const raw = r.source;
+  if (raw && typeof raw === "object" && "label" in raw) {
+    const source = raw as NonNullable<Task["source"]>;
+    return source.label ? source : undefined;
+  }
+  const label = opt(r.source_label);
+  if (!label) return undefined;
+  return {
+    label,
+    type: opt(r.source_type) as TaskSource["type"],
+    url: opt(r.source_url),
+    externalId: opt(r.source_external_id),
+    capturedAt: opt(r.source_captured_at),
   };
 }
 
@@ -423,9 +441,19 @@ function taskPayload(input: TaskInput) {
     title: input.title,
     description: input.description?.trim() || null,
     status: input.status,
-    priority: input.priority,
-    target_date: input.targetDate || null,
     completed_at: input.status === "completed" ? new Date().toISOString() : null,
+    source: normalizeTaskSource(input.source),
+  };
+}
+
+function normalizeTaskSource(source: TaskInput["source"]) {
+  if (!source?.label?.trim()) return null;
+  return {
+    label: source.label.trim(),
+    type: source.type,
+    url: source.url?.trim() || undefined,
+    externalId: source.externalId?.trim() || undefined,
+    capturedAt: source.capturedAt || undefined,
   };
 }
 

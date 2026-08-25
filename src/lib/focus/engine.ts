@@ -73,8 +73,6 @@ const W = {
   recentActivity: 10,
   statusActive: 10,
   statusPlanning: 3,
-  blockedTask: -12, // per blocked task
-  overdueTask: -10, // per overdue task
   remainingTask: -1.5, // per remaining task
   remainingCap: -15,
   staleProject: -18,
@@ -115,7 +113,7 @@ function scoreProject(
   const projectMilestones = input.milestones.filter((m) => m.projectId === project.id);
   const milestone = projectMilestones.find((m) => m.status === "active") ?? projectMilestones[0];
   const milestoneTasks = milestone ? input.tasks.filter((t) => t.milestoneId === milestone.id) : [];
-  const stats = taskStats(milestoneTasks, now);
+  const stats = taskStats(milestoneTasks);
 
   // Progress (task-derived; falls back to the milestone's stored estimate if it
   // has no tasks yet) — nearing completion is high-leverage.
@@ -153,16 +151,6 @@ function scoreProject(
   else if (project.status === "Planning") add("In planning", W.statusPlanning);
 
   // --- Negative (task execution) ---
-  if (stats.blocked > 0) {
-    add(`${stats.blocked} blocked task${plural(stats.blocked)}`, W.blockedTask * stats.blocked);
-    reasons.push(`${stats.blocked} blocked task${plural(stats.blocked)}`);
-  } else if (stats.total) {
-    reasons.push("No blocked tasks");
-  }
-  if (stats.overdue > 0) {
-    add(`${stats.overdue} overdue task${plural(stats.overdue)}`, W.overdueTask * stats.overdue);
-    reasons.push(`${stats.overdue} overdue task${plural(stats.overdue)}`);
-  }
   if (stats.remaining > 0) {
     add(`${stats.remaining} task${plural(stats.remaining)} remaining`, Math.max(stats.remaining * W.remainingTask, W.remainingCap));
     reasons.push(`${stats.remaining} task${plural(stats.remaining)} remaining`);
@@ -237,7 +225,6 @@ function nextUp(project: Project, milestone: Milestone | undefined, input: Focus
 
 function recommend(project: Project, milestone: Milestone | undefined, stats: TaskStats, next?: string): string {
   if (!milestone) return `Pick a milestone for ${project.name} to focus on.`;
-  if (stats.blocked > 0) return `Unblock ${stats.blocked} task${plural(stats.blocked)} on ${milestone.title}, then finish it.`;
   if (stats.remaining > 0) return `Finish ${milestone.title} (${stats.remaining} task${plural(stats.remaining)} left)${next ? ` before starting ${next}` : ""}.`;
   return `Ship ${milestone.title}${next ? `, then pick up ${next}` : ""}.`;
 }

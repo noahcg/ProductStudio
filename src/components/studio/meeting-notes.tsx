@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState, useTransition } from "react";
 import { Loader2, Mic, Plus, Save, Square } from "lucide-react";
-import type { Project, TaskPriority } from "@/lib/domain";
+import type { Project } from "@/lib/domain";
 import { Button, Card, Textarea } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { createTaskAction } from "@/app/focus/actions";
@@ -21,7 +21,7 @@ interface StoredNote {
 
 interface MeetingTask {
   title: string;
-  priority?: TaskPriority;
+  description?: string;
 }
 
 interface MeetingSummary {
@@ -135,7 +135,7 @@ export function MeetingNotes({
       if (!res.ok || !json.ok) throw new Error(json.error ?? "Meeting summary failed.");
       const summary = json.summary as MeetingSummary;
       saveSummaryNote(summary, selectedProject.id);
-      createTasks(summary.tasks, selectedProject.id);
+      createTasks(summary, selectedProject.id);
     } catch (err) {
       setError((err as Error)?.message ?? "Could not process recording.");
     } finally {
@@ -161,15 +161,21 @@ export function MeetingNotes({
     writeNotes(next);
   }
 
-  function createTasks(tasks: MeetingTask[], projectId: string) {
-    if (tasks.length === 0) return;
+  function createTasks(summary: MeetingSummary, projectId: string) {
+    if (summary.tasks.length === 0) return;
+    const capturedAt = new Date().toISOString();
     startTransition(async () => {
-      for (const task of tasks) {
+      for (const task of summary.tasks) {
         await createTaskAction({
           projectId,
           title: task.title,
+          description: task.description,
           status: "todo",
-          priority: task.priority ?? "medium",
+          source: {
+            label: summary.title ? `Meeting — ${summary.title}` : "Meeting notes",
+            type: "meeting",
+            capturedAt,
+          },
         });
       }
     });

@@ -36,9 +36,7 @@ export async function CurrentFocus() {
                     ? "border-success bg-success/20 text-success"
                     : task.status === "in_progress"
                       ? "border-accent text-accent"
-                      : task.status === "blocked"
-                        ? "border-warning text-warning"
-                        : "border-line-strong text-transparent"
+                      : "border-line-strong text-transparent"
                 )}
               >
                 {done && <Check className="h-3 w-3" strokeWidth={3} />}

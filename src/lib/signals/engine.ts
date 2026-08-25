@@ -8,7 +8,6 @@ import type {
   Expense,
 } from "../domain";
 import { now as studioNow } from "../clock";
-import { taskStats } from "../tasks/stats";
 
 /**
  * The Signals Engine — deterministic, no AI/LLM, no external integrations.
@@ -37,9 +36,6 @@ export type GeneratedSignalType =
   | "roadmap_no_next"
   | "milestone_none_active"
   | "milestone_no_tasks"
-  | "tasks_blocked"
-  | "tasks_critical_priority"
-  | "tasks_overdue"
   | "tasks_too_many_open"
   | "decisions_none"
   | "decisions_stale"
@@ -114,7 +110,6 @@ const TH = {
 function daysSince(iso: string, now: Date): number {
   return Math.round((now.getTime() - new Date(iso).getTime()) / 86_400_000);
 }
-const plural = (n: number) => (n === 1 ? "" : "s");
 const money = (n: number) => `$${n.toFixed(2)}`;
 
 export function computeSignals(input: SignalsInput, now: Date = studioNow()): GeneratedSignal[] {
@@ -150,8 +145,6 @@ export function computeSignals(input: SignalsInput, now: Date = studioNow()): Ge
     const milestoneTasks = activeMilestone
       ? pTasks.filter((t) => t.milestoneId === activeMilestone.id)
       : [];
-    const stats = taskStats(pTasks, now);
-
     // --- Project Momentum (uses the canonical last-activity snapshot) ---
     const idle = daysSince(p.lastActivityIso, now);
     if (idle >= TH.dormantDays) {
@@ -236,40 +229,6 @@ export function computeSignals(input: SignalsInput, now: Date = studioNow()): Ge
     }
 
     // --- Tasks ---
-    if (stats.blocked > 0) {
-      sig(
-        "tasks_blocked",
-        "warning",
-        p.id,
-        `${stats.blocked} blocked task${plural(stats.blocked)} on ${p.name}`,
-        `${stats.blocked} task${plural(stats.blocked)} cannot proceed until unblocked.`,
-        "Clear the blockers or note what they depend on.",
-        { blocked: stats.blocked }
-      );
-    }
-    const criticalTasks = pTasks.filter((t) => t.priority === "critical" && t.status !== "completed").length;
-    if (criticalTasks > 0) {
-      sig(
-        "tasks_critical_priority",
-        "warning",
-        p.id,
-        `${criticalTasks} critical-priority task${plural(criticalTasks)} on ${p.name}`,
-        `${criticalTasks} open task${plural(criticalTasks)} are marked critical priority.`,
-        "Make sure critical-priority work is the current focus.",
-        { criticalTasks }
-      );
-    }
-    if (stats.overdue > 0) {
-      sig(
-        "tasks_overdue",
-        "warning",
-        p.id,
-        `${stats.overdue} overdue task${plural(stats.overdue)} on ${p.name}`,
-        `${stats.overdue} task${plural(stats.overdue)} are past their target date.`,
-        "Reschedule or finish the overdue tasks.",
-        { overdue: stats.overdue }
-      );
-    }
     const openTasks = pTasks.filter((t) => t.status !== "completed").length;
     if (openTasks > TH.tooManyOpenTasks) {
       sig(

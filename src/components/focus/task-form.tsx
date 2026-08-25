@@ -2,16 +2,14 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
-import type { Task, TaskInput, TaskStatus, TaskPriority } from "@/lib/domain";
+import type { Task, TaskInput, TaskStatus } from "@/lib/domain";
 import { Card, Button, Input, Textarea, Select, Field } from "@/components/ui";
 
 const STATUSES: { value: TaskStatus; label: string }[] = [
   { value: "todo", label: "To do" },
   { value: "in_progress", label: "In progress" },
-  { value: "blocked", label: "Blocked" },
-  { value: "completed", label: "Completed" },
+  { value: "completed", label: "Done" },
 ];
-const PRIORITIES: TaskPriority[] = ["low", "medium", "high", "critical"];
 
 export function TaskForm({
   open,
@@ -33,14 +31,18 @@ export function TaskForm({
   const [title, setTitle] = useState(initial?.title ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [status, setStatus] = useState<TaskStatus>(initial?.status ?? "todo");
-  const [priority, setPriority] = useState<TaskPriority>(initial?.priority ?? "medium");
-  const [targetDate, setTargetDate] = useState(initial?.targetDate?.slice(0, 10) ?? "");
+  const [sourceLabel, setSourceLabel] = useState(initial?.source?.label ?? "");
 
   if (!open) return null;
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    onSubmit({ title, description, status, priority, targetDate: targetDate || undefined });
+    onSubmit({
+      title,
+      description,
+      status,
+      source: sourceLabel.trim() ? { label: sourceLabel.trim(), type: "manual" } : undefined,
+    });
   }
 
   return (
@@ -71,7 +73,7 @@ export function TaskForm({
           <Field label="Description">
             <Textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional detail" />
           </Field>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Status">
               <Select value={status} onChange={(e) => setStatus(e.target.value as TaskStatus)}>
                 {STATUSES.map((s) => (
@@ -79,15 +81,8 @@ export function TaskForm({
                 ))}
               </Select>
             </Field>
-            <Field label="Priority">
-              <Select value={priority} onChange={(e) => setPriority(e.target.value as TaskPriority)}>
-                {PRIORITIES.map((p) => (
-                  <option key={p} value={p}>{p[0].toUpperCase() + p.slice(1)}</option>
-                ))}
-              </Select>
-            </Field>
-            <Field label="Target date">
-              <Input type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} />
+            <Field label="Source">
+              <Input value={sourceLabel} onChange={(e) => setSourceLabel(e.target.value)} placeholder="Optional note or meeting" />
             </Field>
           </div>
 

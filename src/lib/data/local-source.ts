@@ -68,7 +68,7 @@ function seedStore(): LocalStore {
 async function readStore(): Promise<LocalStore> {
   try {
     const text = await readFile(storePath, "utf8");
-    return JSON.parse(text) as LocalStore;
+    return normalizeStore(JSON.parse(text) as LocalStore);
   } catch (err) {
     const code = (err as NodeJS.ErrnoException).code;
     if (code !== "ENOENT") throw err;
@@ -92,6 +92,16 @@ async function mutate<T>(fn: (store: LocalStore) => T): Promise<T> {
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function normalizeStore(store: LocalStore): LocalStore {
+  const fallbackDate = studioNow().toISOString();
+  store.tasks = store.tasks.map((task) => ({
+    ...task,
+    status: task.status === "completed" || task.status === "in_progress" ? task.status : "todo",
+    createdAt: task.createdAt ?? task.completedAt ?? fallbackDate,
+  }));
+  return store;
 }
 
 function newId(prefix: string): string {
@@ -127,15 +137,27 @@ function nextPosition(items: { id: string }[]): number {
 }
 
 function fromTaskInput(input: TaskInput): Omit<Task, "id"> {
+  const completedAt = input.status === "completed" ? studioNow().toISOString() : undefined;
   return {
     projectId: input.projectId,
     milestoneId: input.milestoneId,
     title: input.title,
     description: input.description?.trim() || undefined,
     status: input.status,
-    priority: input.priority,
-    targetDate: input.targetDate || undefined,
-    completedAt: input.status === "completed" ? studioNow().toISOString() : undefined,
+    createdAt: studioNow().toISOString(),
+    completedAt,
+    source: normalizeTaskSource(input),
+  };
+}
+
+function normalizeTaskSource(input: TaskInput): Task["source"] {
+  if (!input.source?.label?.trim()) return undefined;
+  return {
+    label: input.source.label.trim(),
+    type: input.source.type,
+    url: input.source.url?.trim() || undefined,
+    externalId: input.source.externalId?.trim() || undefined,
+    capturedAt: input.source.capturedAt || undefined,
   };
 }
 
@@ -360,7 +382,7 @@ export const localSource: DataSource = {
     return mutate((store) => {
       const i = store.tasks.findIndex((t) => t.id === id);
       if (i === -1) throw new Error(`Task ${id} not found`);
-      const updated: Task = { ...store.tasks[i], ...fromTaskInput(input), id };
+      const updated: Task = { ...store.tasks[i], ...fromTaskInput(input), id, createdAt: store.tasks[i].createdAt };
       store.tasks[i] = updated;
       return updated;
     });

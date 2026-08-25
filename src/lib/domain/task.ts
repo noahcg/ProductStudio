@@ -1,13 +1,19 @@
 import type { TaskId, ProjectId, MilestoneId } from "./ids";
 
-export type TaskStatus = "todo" | "in_progress" | "blocked" | "completed";
+export type TaskStatus = "todo" | "in_progress" | "completed";
 
-export type TaskPriority = "low" | "medium" | "high" | "critical";
+export interface TaskSource {
+  label: string;
+  type?: "manual" | "meeting" | "automation" | "import";
+  url?: string;
+  externalId?: string;
+  capturedAt?: string;
+}
 
 /**
- * A unit of execution work. Tasks exist to help Product Studio understand
- * progress toward milestones — they always belong to a project and usually to a
- * milestone. (Not a generic task manager: no subtasks, comments, assignees.)
+ * A lightweight project-linked to-do. Product Studio is the system of record;
+ * integrations only add source metadata so a task can trace back to a meeting,
+ * note, or automation without being owned by that outside tool.
  */
 export interface Task {
   id: TaskId;
@@ -16,9 +22,9 @@ export interface Task {
   title: string;
   description?: string;
   status: TaskStatus;
-  priority: TaskPriority;
-  targetDate?: string;
+  createdAt: string;
   completedAt?: string;
+  source?: TaskSource;
 }
 
 /** Fields accepted when creating/editing a task. */
@@ -28,6 +34,5 @@ export interface TaskInput {
   title: string;
   description?: string;
   status: TaskStatus;
-  priority: TaskPriority;
-  targetDate?: string;
+  source?: TaskSource;
 }

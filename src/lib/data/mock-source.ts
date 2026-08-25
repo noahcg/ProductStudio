@@ -204,7 +204,7 @@ export const mockSource: DataSource = {
   async updateTask(id: string, input: TaskInput) {
     const i = tasks.findIndex((t) => t.id === id);
     if (i === -1) throw new Error(`Task ${id} not found`);
-    const updated: Task = { ...tasks[i], ...fromTaskInput(input), id };
+    const updated: Task = { ...tasks[i], ...fromTaskInput(input), id, createdAt: tasks[i].createdAt };
     tasks[i] = updated;
     return updated;
   },
@@ -269,15 +269,27 @@ function fromRoadmapInput(input: RoadmapInput): Omit<RoadmapItem, "id" | "sortOr
 }
 
 function fromTaskInput(input: TaskInput): Omit<Task, "id"> {
+  const completedAt = input.status === "completed" ? studioNow().toISOString() : undefined;
   return {
     projectId: input.projectId,
     milestoneId: input.milestoneId,
     title: input.title,
     description: input.description?.trim() || undefined,
     status: input.status,
-    priority: input.priority,
-    targetDate: input.targetDate || undefined,
-    completedAt: input.status === "completed" ? studioNow().toISOString() : undefined,
+    createdAt: studioNow().toISOString(),
+    completedAt,
+    source: normalizeTaskSource(input),
+  };
+}
+
+function normalizeTaskSource(input: TaskInput): Task["source"] {
+  if (!input.source?.label?.trim()) return undefined;
+  return {
+    label: input.source.label.trim(),
+    type: input.source.type,
+    url: input.source.url?.trim() || undefined,
+    externalId: input.source.externalId?.trim() || undefined,
+    capturedAt: input.source.capturedAt || undefined,
   };
 }
 

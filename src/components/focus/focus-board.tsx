@@ -5,11 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   Check,
   CircleDot,
-  AlertTriangle,
   Plus,
   Pencil,
   Trash2,
-  Ban,
   Sparkles,
   Settings,
 } from "lucide-react";
@@ -49,13 +47,6 @@ type OptimisticAction =
 
 type TaskModal = { mode: "closed" } | { mode: "new" } | { mode: "edit"; task: Task };
 type ProjectModal = { mode: "closed" } | { mode: "new" } | { mode: "edit"; project: Project };
-
-const priorityDot: Record<string, string> = {
-  critical: "bg-danger",
-  high: "bg-warning",
-  medium: "bg-muted",
-  low: "bg-faint",
-};
 
 export function FocusBoard({
   projects,
@@ -126,7 +117,10 @@ export function FocusBoard({
         const res = await updateTaskAction(editing.id, input);
         if (!res.ok) return setError(res.error);
       } else {
-        applyOptimistic({ type: "add", task: { id: `optimistic-${Date.now()}`, ...input } });
+        applyOptimistic({
+          type: "add",
+          task: { id: `optimistic-${Date.now()}`, createdAt: new Date().toISOString(), ...input },
+        });
         const res = await createTaskAction(input);
         if (!res.ok) return setError(res.error);
       }
@@ -244,9 +238,6 @@ export function FocusBoard({
                     <span className="font-medium text-fg">
                       {stats.completed} / {stats.total} tasks complete
                     </span>
-                    <Chip tone={stats.blocked ? "warn" : "ok"}>
-                      {stats.blocked ? `${stats.blocked} blocked` : "No blocked tasks"}
-                    </Chip>
                     <Chip tone="muted">{stats.remaining} remaining</Chip>
                   </div>
 
@@ -258,8 +249,8 @@ export function FocusBoard({
                         onToggleComplete={() =>
                           setStatus(task, task.status === "completed" ? "todo" : "completed")
                         }
-                        onToggleBlock={() =>
-                          setStatus(task, task.status === "blocked" ? "todo" : "blocked")
+                        onToggleProgress={() =>
+                          setStatus(task, task.status === "in_progress" ? "todo" : "in_progress")
                         }
                         onEdit={() => setTaskModal({ mode: "edit", task })}
                         onDelete={() => removeTask(task)}
@@ -438,18 +429,17 @@ function Chip({ tone, children }: { tone: "ok" | "warn" | "muted"; children: Rea
 function TaskRow({
   task,
   onToggleComplete,
-  onToggleBlock,
+  onToggleProgress,
   onEdit,
   onDelete,
 }: {
   task: Task;
   onToggleComplete: () => void;
-  onToggleBlock: () => void;
+  onToggleProgress: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
   const done = task.status === "completed";
-  const blocked = task.status === "blocked";
   const ctrl =
     "grid h-6 w-6 place-items-center rounded-md text-faint transition-colors hover:bg-surface hover:text-fg";
 
@@ -462,32 +452,30 @@ function TaskRow({
           "grid h-5 w-5 shrink-0 place-items-center rounded-full border transition-colors",
           done
             ? "border-success bg-success/20 text-success"
-            : blocked
-              ? "border-warning text-warning"
-              : task.status === "in_progress"
+            : task.status === "in_progress"
                 ? "border-accent text-accent"
                 : "border-line-strong text-transparent hover:border-muted"
         )}
       >
         {done ? (
           <Check className="h-3 w-3" strokeWidth={3} />
-        ) : blocked ? (
-          <AlertTriangle className="h-3 w-3" />
         ) : task.status === "in_progress" ? (
           <CircleDot className="h-3 w-3" />
         ) : null}
       </button>
 
-      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", priorityDot[task.priority])} />
+      <span className={cn("min-w-0 flex-1 text-sm", done ? "text-muted line-through" : "text-fg")}>
+        {task.title}
+        {task.source?.label && (
+          <span className="mt-0.5 block truncate text-xs text-faint">{task.source.label}</span>
+        )}
+      </span>
 
-      <span className={cn("flex-1 text-sm", done ? "text-muted line-through" : "text-fg")}>{task.title}</span>
-
-      {blocked && <Badge tone="content">Blocked</Badge>}
       {task.status === "in_progress" && <Badge tone="violet">In progress</Badge>}
 
       <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-        <button aria-label={blocked ? "Unblock" : "Block"} onClick={onToggleBlock} className={ctrl}>
-          <Ban className="h-3.5 w-3.5" />
+        <button aria-label="Toggle in progress" onClick={onToggleProgress} className={ctrl}>
+          <CircleDot className="h-3.5 w-3.5" />
         </button>
         <button aria-label="Edit task" onClick={onEdit} className={ctrl}>
           <Pencil className="h-3.5 w-3.5" />

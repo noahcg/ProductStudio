@@ -41,7 +41,7 @@ export interface ProjectReview {
 export interface TaskSummary {
   completed: number;
   created: number;
-  blocked: number;
+  open: number;
   reopened: number;
 }
 
