@@ -19,7 +19,7 @@ Product Studio pulls your portfolio of side projects — progress, blockers, inf
 | Route | Screen | What it does |
 |-------|--------|--------------|
 | `/` | **Studio** | Landing dashboard — projects, current focus, signals, recent activity, monthly spend. Matches the approved mockup. |
-| `/focus` | **Focus** | The single most important milestone, an interactive task tracker, and a **recommendation engine** that ranks the whole portfolio by momentum, blockers, and urgency. |
+| `/projects` | **Projects** | Project workspaces — current tasks, goals, project notes, and operational context. `/focus` redirects here for compatibility. |
 | `/roadmaps` | **Roadmaps** | Now / Next / Later planning across every product. |
 | `/decisions` | **Decisions** | A running log of decided / open / revisit calls with rationale. |
 | `/signals` | **Signals** | Infra health, integrations, activity stream, and open alerts. |

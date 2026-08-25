@@ -58,7 +58,7 @@ export function ProjectCard({
 
   return (
     <Link
-      href={`/focus?project=${project.id}`}
+      href={`/projects?project=${project.id}`}
       className="project-card group flex flex-col overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface/70 transition-colors hover:border-line-strong"
     >
       {/* Header / image area */}

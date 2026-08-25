@@ -11,7 +11,6 @@ import {
   Trash2,
   Ban,
   Sparkles,
-  ArrowRight,
 } from "lucide-react";
 import type { Task, TaskInput, TaskStatus, Project, Milestone, Domain } from "@/lib/domain";
 import type { ProjectFocus } from "@/lib/focus/engine";
@@ -23,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { Card, Badge, PageHeading, Button } from "@/components/ui";
 import { ProgressRing } from "@/components/donut";
 import { projectIcons } from "@/components/icons";
+import { MeetingNotes } from "@/components/studio/meeting-notes";
 import { TaskForm } from "./task-form";
 import { HealthSummary } from "./health-summary";
 import { DomainPanel } from "./domain-panel";
@@ -69,7 +69,7 @@ export function FocusBoard({
   supabase: Record<string, SupabaseProjectStatus>;
 }) {
   const params = useSearchParams();
-  const [selectedId, setSelectedId] = useState(params.get("project") ?? ranked[0]?.project.id ?? "");
+  const [selectedId, setSelectedId] = useState(params.get("project") ?? projects[0]?.id ?? "");
   const [modal, setModal] = useState<Modal>({ mode: "closed" });
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -95,6 +95,7 @@ export function FocusBoard({
   const selectedDomains = domains.filter((d) => d.projectId === selectedId);
   const selectedDeployment = vercel[selectedId];
   const selectedSupabase = supabase[selectedId];
+  const selectedRec = ranked.find((r) => r.project.id === selectedId);
 
   function close() {
     setModal({ mode: "closed" });
@@ -143,133 +144,102 @@ export function FocusBoard({
   return (
     <div className="space-y-6">
       <PageHeading
-        title="Focus"
-        subtitle="Your single most important milestone right now — and the work left to finish it."
+        title="Projects"
+        subtitle="Open a project to manage its current tasks, goals, notes, and operational context."
       />
 
       {!project ? (
         <Card className="p-10 text-center text-sm text-muted">
-          No projects yet. Add a project to start tracking focus.
+          No projects yet. Add a project to start tracking tasks and notes.
         </Card>
       ) : (
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
-          {/* Milestone + Tasks */}
-          <Card className="p-6">
-            <div className="flex items-start justify-between gap-6">
-              <div>
-                <div className="mb-1 flex items-center gap-2">
-                  <Badge tone="high">{milestone ? `${milestone.priority} Priority` : "No milestone"}</Badge>
-                  <span className="text-xs text-muted">{project.name}</span>
-                </div>
-                <h2 className="text-2xl font-bold tracking-tight text-fg">
-                  {milestone?.title ?? project.nextMilestone}
-                </h2>
-                {milestone?.summary && <p className="mt-1 max-w-lg text-sm text-muted">{milestone.summary}</p>}
-              </div>
-              {milestone && (
-                <ProgressRing value={milestone.progress} size={104} color="var(--success)" />
-              )}
-            </div>
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[280px_minmax(0,1fr)_360px]">
+          <ProjectSwitcher
+            projects={projects}
+            tasks={optimistic}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+          />
 
-            {/* Counts */}
-            <div className="mt-6 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-fg">Tasks</h3>
-              <Button variant="subtle" className="text-xs" onClick={() => setModal({ mode: "new" })}>
-                <Plus className="h-3.5 w-3.5" /> Add task
-              </Button>
-            </div>
-
-            {milestoneTasks.length > 0 ? (
-              <>
-                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-                  <span className="font-medium text-fg">
-                    {stats.completed} / {stats.total} tasks complete
-                  </span>
-                  <Chip tone={stats.blocked ? "warn" : "ok"}>
-                    {stats.blocked ? `${stats.blocked} blocked` : "No blocked tasks"}
-                  </Chip>
-                  <Chip tone="muted">{stats.remaining} remaining</Chip>
-                </div>
-
-                <ul className="mt-3 space-y-1.5">
-                  {milestoneTasks.map((task) => (
-                    <TaskRow
-                      key={task.id}
-                      task={task}
-                      onToggleComplete={() =>
-                        setStatus(task, task.status === "completed" ? "todo" : "completed")
-                      }
-                      onToggleBlock={() =>
-                        setStatus(task, task.status === "blocked" ? "todo" : "blocked")
-                      }
-                      onEdit={() => setModal({ mode: "edit", task })}
-                      onDelete={() => removeTask(task)}
-                    />
-                  ))}
-                </ul>
-              </>
-            ) : (
-              <div className="mt-4 rounded-xl border border-dashed border-line p-8 text-center text-sm text-muted">
-                {milestone
-                  ? "No tasks for this milestone yet."
-                  : "No tasks for this project yet."}
-                <div className="mt-3">
-                  <Button variant="primary" onClick={() => setModal({ mode: "new" })}>
-                    <Plus className="h-4 w-4" /> Add task
-                  </Button>
-                </div>
-              </div>
-            )}
-            {error && <p className="mt-3 text-sm text-danger">{error}</p>}
-          </Card>
-
-          {/* Focus Engine ranking + project health */}
           <div className="flex flex-col gap-5">
-          <Card className="flex flex-col p-5">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-accent" />
-              <h3 className="text-[15px] font-semibold tracking-tight text-fg">What to work on next</h3>
-            </div>
-            <p className="mt-1 text-xs text-muted">Ranked across your portfolio by execution, momentum, and urgency.</p>
+            <Card className="p-6">
+              <div className="flex items-start justify-between gap-6">
+                <div>
+                  <div className="mb-1 flex items-center gap-2">
+                    <Badge tone="high">{milestone ? `${milestone.priority} Priority` : "No milestone"}</Badge>
+                    <span className="text-xs text-muted">{project.status}</span>
+                  </div>
+                  <h2 className="text-2xl font-bold tracking-tight text-fg">{project.name}</h2>
+                  <p className="mt-1 text-lg font-semibold text-fg">
+                    {milestone?.title ?? project.nextMilestone}
+                  </p>
+                  {milestone?.summary && <p className="mt-1 max-w-lg text-sm text-muted">{milestone.summary}</p>}
+                </div>
+                {milestone && (
+                  <ProgressRing value={milestone.progress} size={104} color="var(--success)" />
+                )}
+              </div>
 
-            <ul className="mt-4 space-y-2.5">
-              {ranked.map((rec, i) => {
-                const RIcon = projectIcons[rec.project.icon];
-                const selected = rec.project.id === selectedId;
-                return (
-                  <li key={rec.project.id}>
-                    <button
-                      onClick={() => setSelectedId(rec.project.id)}
-                      className={cn(
-                        "w-full rounded-xl border p-3 text-left transition-colors",
-                        selected
-                          ? "border-accent/50 bg-accent/10"
-                          : "border-line bg-surface-2/40 hover:border-line-strong"
-                      )}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <span className="grid h-7 w-7 place-items-center rounded-lg bg-surface text-muted">
-                          {i === 0 ? <span className="text-xs font-bold text-accent">#1</span> : <RIcon className="h-4 w-4" />}
-                        </span>
-                        <span className="flex-1 text-sm font-semibold text-fg">{rec.project.name}</span>
-                        <span className="text-xs font-medium text-faint">{rec.score} pts</span>
-                      </div>
-                      {rec.reasons[0] && <p className="mt-1.5 pl-9 text-xs text-muted">{rec.reasons[0]}</p>}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+              <div className="mt-6 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-fg">Tasks</h3>
+                <Button variant="subtle" className="text-xs" onClick={() => setModal({ mode: "new" })}>
+                  <Plus className="h-3.5 w-3.5" /> Add task
+                </Button>
+              </div>
 
-            <div className="mt-auto pt-4">
-              <RecReasons rec={ranked.find((r) => r.project.id === selectedId)} />
-            </div>
-          </Card>
+              {milestoneTasks.length > 0 ? (
+                <>
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                    <span className="font-medium text-fg">
+                      {stats.completed} / {stats.total} tasks complete
+                    </span>
+                    <Chip tone={stats.blocked ? "warn" : "ok"}>
+                      {stats.blocked ? `${stats.blocked} blocked` : "No blocked tasks"}
+                    </Chip>
+                    <Chip tone="muted">{stats.remaining} remaining</Chip>
+                  </div>
 
-          {selectedHealth && <HealthSummary health={selectedHealth} />}
-          <DeploymentPanel status={selectedDeployment} />
-          <SupabasePanel status={selectedSupabase} />
-          <DomainPanel domains={selectedDomains} />
+                  <ul className="mt-3 space-y-1.5">
+                    {milestoneTasks.map((task) => (
+                      <TaskRow
+                        key={task.id}
+                        task={task}
+                        onToggleComplete={() =>
+                          setStatus(task, task.status === "completed" ? "todo" : "completed")
+                        }
+                        onToggleBlock={() =>
+                          setStatus(task, task.status === "blocked" ? "todo" : "blocked")
+                        }
+                        onEdit={() => setModal({ mode: "edit", task })}
+                        onDelete={() => removeTask(task)}
+                      />
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <div className="mt-4 rounded-xl border border-dashed border-line p-8 text-center text-sm text-muted">
+                  {milestone
+                    ? "No tasks for this milestone yet."
+                    : "No tasks for this project yet."}
+                  <div className="mt-3">
+                    <Button variant="primary" onClick={() => setModal({ mode: "new" })}>
+                      <Plus className="h-4 w-4" /> Add task
+                    </Button>
+                  </div>
+                </div>
+              )}
+              {error && <p className="mt-3 text-sm text-danger">{error}</p>}
+            </Card>
+
+            <MeetingNotes projects={projects} projectId={project.id} />
+          </div>
+
+          <div className="flex flex-col gap-5">
+            {selectedRec && <ProjectSuggestion rec={selectedRec} isTop={ranked[0]?.project.id === selectedId} />}
+            {selectedHealth && <HealthSummary health={selectedHealth} />}
+            <DeploymentPanel status={selectedDeployment} />
+            <SupabasePanel status={selectedSupabase} />
+            <DomainPanel domains={selectedDomains} />
           </div>
         </div>
       )}
@@ -284,6 +254,70 @@ export function FocusBoard({
         onClose={close}
       />
     </div>
+  );
+}
+
+function ProjectSwitcher({
+  projects,
+  tasks,
+  selectedId,
+  onSelect,
+}: {
+  projects: Project[];
+  tasks: Task[];
+  selectedId: string;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <Card className="h-fit p-3">
+      <div className="px-2 pb-2 pt-1">
+        <h2 className="text-[15px] font-semibold tracking-tight text-fg">Projects</h2>
+        <p className="mt-1 text-xs text-muted">Select a workspace.</p>
+      </div>
+      <div className="space-y-1">
+        {projects.map((project) => {
+          const Icon = projectIcons[project.icon];
+          const open = tasks.filter((task) => task.projectId === project.id && task.status !== "completed").length;
+          const selected = project.id === selectedId;
+          return (
+            <button
+              key={project.id}
+              onClick={() => onSelect(project.id)}
+              className={cn(
+                "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors",
+                selected ? "bg-accent/15 text-fg" : "text-muted hover:bg-surface-2 hover:text-fg"
+              )}
+            >
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-surface-2 text-fg">
+                <Icon className="h-4 w-4" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium">{project.name}</span>
+                <span className="block text-xs text-faint">{open} open tasks</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+function ProjectSuggestion({ rec, isTop }: { rec: ProjectFocus; isTop: boolean }) {
+  return (
+    <Card className="p-5">
+      <div className="flex items-center gap-2">
+        <Sparkles className="h-4 w-4 text-accent" />
+        <h3 className="text-[15px] font-semibold tracking-tight text-fg">Suggestion</h3>
+        {isTop && <Badge tone="violet" className="ml-auto">Top pick</Badge>}
+      </div>
+      {rec.recommendation && (
+        <p className="mt-3 border-l-2 border-accent/50 pl-3 text-sm leading-relaxed text-fg">
+          {rec.recommendation}
+        </p>
+      )}
+      {rec.reasons[0] && <p className="mt-3 text-xs text-muted">{rec.reasons[0]}</p>}
+    </Card>
   );
 }
 
@@ -359,25 +393,5 @@ function TaskRow({
         </button>
       </div>
     </li>
-  );
-}
-
-function RecReasons({ rec }: { rec?: ProjectFocus }) {
-  if (!rec) return null;
-  return (
-    <div className="rounded-xl border border-line bg-surface-2/40 p-3.5">
-      {rec.recommendation && (
-        <p className="mb-3 border-l-2 border-accent/50 pl-2.5 text-xs font-medium text-fg">{rec.recommendation}</p>
-      )}
-      <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-faint">Reasons</div>
-      <ul className="space-y-1.5">
-        {rec.reasons.map((reason, i) => (
-          <li key={i} className="flex items-start gap-2 text-xs text-muted">
-            <ArrowRight className="mt-0.5 h-3 w-3 shrink-0 text-accent" />
-            {reason}
-          </li>
-        ))}
-      </ul>
-    </div>
   );
 }

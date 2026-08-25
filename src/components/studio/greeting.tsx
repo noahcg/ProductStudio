@@ -1,12 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 function partOfDay(hour: number) {
   if (hour < 12) return "morning";
   if (hour < 18) return "afternoon";
   return "evening";
 }
+
+const subscribeGreeting = () => () => {};
+const getGreetingSnapshot = () => `Good ${partOfDay(new Date().getHours())}`;
+const getServerGreetingSnapshot = () => "Good afternoon";
 
 /**
  * Greeting reflects the viewer's real local time of day (consistent with the
@@ -15,10 +19,11 @@ function partOfDay(hour: number) {
  * data layer.
  */
 export function Greeting({ name }: { name: string }) {
-  const [greeting, setGreeting] = useState("Good afternoon");
-  useEffect(() => {
-    setGreeting(`Good ${partOfDay(new Date().getHours())}`);
-  }, []);
+  const greeting = useSyncExternalStore(
+    subscribeGreeting,
+    getGreetingSnapshot,
+    getServerGreetingSnapshot
+  );
 
   return (
     <div>

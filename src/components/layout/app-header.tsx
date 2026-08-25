@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { cn } from "@/lib/utils";
 import type { AttentionInbox as Inbox } from "@/lib/attention/inbox";
 import { ThemeToggle } from "./theme-toggle";
@@ -11,7 +11,7 @@ import { AttentionInbox } from "./attention-inbox";
 
 const NAV = [
   { href: "/", label: "Studio" },
-  { href: "/focus", label: "Focus" },
+  { href: "/projects", label: "Projects" },
   { href: "/roadmaps", label: "Roadmaps" },
   { href: "/decisions", label: "Decisions" },
   { href: "/signals", label: "Signals" },
@@ -27,14 +27,20 @@ const NAV = [
  * in `lib/clock.ts` (which keeps the mock "2d ago" labels stable). The header
  * shows "now"; the dashboard data is demo data fixed to June 2026.
  */
+let currentClock = new Date();
+const getClockSnapshot = () => currentClock;
+const getServerClockSnapshot = () => null;
+const subscribeClock = (onStoreChange: () => void) => {
+  currentClock = new Date();
+  const t = setInterval(() => {
+    currentClock = new Date();
+    onStoreChange();
+  }, 30_000);
+  return () => clearInterval(t);
+};
+
 function useClock() {
-  const [now, setNow] = useState<Date | null>(null);
-  useEffect(() => {
-    setNow(new Date());
-    const t = setInterval(() => setNow(new Date()), 30_000);
-    return () => clearInterval(t);
-  }, []);
-  return now;
+  return useSyncExternalStore(subscribeClock, getClockSnapshot, getServerClockSnapshot);
 }
 
 export function AppHeader({

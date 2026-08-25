@@ -3,19 +3,18 @@
 import { useEffect, useRef, useState } from "react";
 import { Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useMounted } from "@/lib/client-store";
 
 const KEY = "ps-atmosphere";
 
 export function SettingsMenu() {
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const [atmosphere, setAtmosphere] = useState(true);
+  const mounted = useMounted();
+  const [atmosphere, setAtmosphere] = useState(() => {
+    if (typeof document === "undefined") return true;
+    return !document.documentElement.classList.contains("atmosphere-off");
+  });
   const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setMounted(true);
-    setAtmosphere(!document.documentElement.classList.contains("atmosphere-off"));
-  }, []);
 
   useEffect(() => {
     if (!open) return;

@@ -54,8 +54,8 @@ export async function CurrentFocus() {
           <span className="text-lg font-semibold text-fg">{remaining}</span>{" "}
           <span className="text-muted">Tasks remaining</span>
         </div>
-        <LinkButton href="/focus" variant="primary">
-          View Focus <ArrowRight className="h-4 w-4" />
+        <LinkButton href={`/projects?project=${focus.projectId}`} variant="primary">
+          Open Project <ArrowRight className="h-4 w-4" />
         </LinkButton>
       </div>
     </Card>

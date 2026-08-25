@@ -17,6 +17,7 @@ export async function createTaskAction(input: TaskInput): Promise<ActionResult> 
   if (err) return { ok: false, error: err };
   try {
     await createTask(input);
+    revalidatePath("/projects");
     revalidatePath("/focus");
     revalidatePath("/");
     return { ok: true };
@@ -30,6 +31,7 @@ export async function updateTaskAction(id: string, input: TaskInput): Promise<Ac
   if (err) return { ok: false, error: err };
   try {
     await updateTask(id, input);
+    revalidatePath("/projects");
     revalidatePath("/focus");
     revalidatePath("/");
     return { ok: true };
@@ -41,6 +43,7 @@ export async function updateTaskAction(id: string, input: TaskInput): Promise<Ac
 export async function deleteTaskAction(id: string): Promise<ActionResult> {
   try {
     await deleteTask(id);
+    revalidatePath("/projects");
     revalidatePath("/focus");
     revalidatePath("/");
     return { ok: true };
@@ -52,6 +55,7 @@ export async function deleteTaskAction(id: string): Promise<ActionResult> {
 export async function setTaskStatusAction(id: string, status: TaskStatus): Promise<ActionResult> {
   try {
     await setTaskStatus(id, status);
+    revalidatePath("/projects");
     revalidatePath("/focus");
     revalidatePath("/");
     return { ok: true };

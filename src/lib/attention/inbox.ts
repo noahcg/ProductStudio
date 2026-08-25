@@ -73,9 +73,9 @@ export function buildAttentionInbox(
 
   const items: AttentionItem[] = actionable.map((s) => {
     const projectName = s.projectId ? projectNameById.get(s.projectId) : undefined;
-    // Project-scoped → act in Focus; studio-level → the Signals screen.
-    const actionLabel = s.projectId ? "View Focus" : "View Signals";
-    const actionHref = s.projectId ? `/focus?project=${s.projectId}` : "/signals";
+    // Project-scoped → act in Projects; studio-level → the Signals screen.
+    const actionLabel = s.projectId ? "View Project" : "View Signals";
+    const actionHref = s.projectId ? `/projects?project=${s.projectId}` : "/signals";
     return {
       id: s.id,
       severity: s.severity,

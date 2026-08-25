@@ -1,101 +1,58 @@
-import { ArrowRight, Star } from "lucide-react";
+import { Activity, AlertTriangle, ArrowRight, DollarSign, Star } from "lucide-react";
 import {
-  getProjects,
   getWeeklySummary,
   getProfile,
-  getProjectHealth,
-  getGitHubStatuses,
-  getDomainHealthByProject,
-  getDeploymentHealthByProject,
-  getSupabaseHealthByProject,
+  getStudioStats,
 } from "@/lib/data";
 import { LinkButton } from "@/components/ui";
-import { StatRow } from "@/components/studio/stat-row";
-import { ProjectCard } from "@/components/studio/project-card";
 import { CurrentFocus } from "@/components/studio/current-focus";
 import { NeedsAttention } from "@/components/studio/needs-attention";
-import { SignalsPanel } from "@/components/studio/signals-panel";
 import { RecentActivity } from "@/components/studio/recent-activity";
 import { MonthlySpend } from "@/components/studio/monthly-spend";
 import { LatestReview } from "@/components/studio/latest-review";
 import { Greeting } from "@/components/studio/greeting";
+import { MorningProjects } from "@/components/studio/morning-projects";
+import { currency } from "@/lib/utils";
 
 export default async function StudioPage() {
-  const [
-    projects,
-    weekly,
-    profile,
-    health,
-    githubStatuses,
-    domainHealth,
-    deploymentHealth,
-    supabaseHealth,
-  ] = await Promise.all([
-    getProjects(),
+  const [weekly, profile, stats] = await Promise.all([
     getWeeklySummary(),
     getProfile(),
-    getProjectHealth(),
-    getGitHubStatuses(),
-    getDomainHealthByProject(),
-    getDeploymentHealthByProject(),
-    getSupabaseHealthByProject(),
+    getStudioStats(),
   ]);
-  const healthById = new Map(health.map((h) => [h.project.id, h]));
 
   return (
-    <div className="space-y-6">
-      {/* Greeting + stats */}
-      <div className="flex flex-wrap items-start justify-between gap-6">
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-5">
         <Greeting name={profile.name} />
-        <StatRow />
+        <div className="flex flex-wrap items-center gap-2">
+          <QuietStat icon={<Activity className="h-4 w-4" />} label="Active" value={String(stats.active)} />
+          <QuietStat icon={<AlertTriangle className="h-4 w-4" />} label="Attention" value={String(stats.needsAttention)} tone="warn" />
+          <QuietStat icon={<DollarSign className="h-4 w-4" />} label="Spend" value={currency(stats.monthlySpend)} />
+        </div>
       </div>
 
-      {/* Main grid */}
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
-        {/* Left column */}
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="flex flex-col gap-5">
-          <section>
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-[15px] font-semibold tracking-tight text-fg">Your Projects</h2>
-              <LinkButton href="/roadmaps" className="flex items-center gap-1 text-sm">
-                View all projects <ArrowRight className="h-3.5 w-3.5" />
-              </LinkButton>
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {projects.map((p) => (
-                <ProjectCard
-                  key={p.id}
-                  project={p}
-                  health={healthById.get(p.id)}
-                  github={githubStatuses[p.id]}
-                  domainHealth={domainHealth[p.id]}
-                  deploymentHealth={deploymentHealth[p.id]}
-                  supabaseHealth={supabaseHealth[p.id]}
-                />
-              ))}
-            </div>
-          </section>
+          <CurrentFocus />
+          <MorningProjects />
 
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
             <NeedsAttention />
-            <SignalsPanel />
             <RecentActivity />
           </div>
         </div>
 
-        {/* Right column */}
         <div className="flex flex-col gap-5">
           <LatestReview />
-          <CurrentFocus />
           <MonthlySpend />
         </div>
       </div>
 
-      {/* Footer banner */}
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-[var(--radius-card)] border border-line bg-surface/60 px-5 py-4">
         <div className="flex items-center gap-3">
-          <Star className="h-5 w-5 fill-warning/20 text-warning" />
-          <p className="text-sm text-fg">
+          <Star className="h-5 w-5 shrink-0 fill-warning/20 text-warning" />
+          <p className="text-sm leading-relaxed text-fg">
             You shipped <strong>{weekly.updates} updates</strong> across {weekly.products} products this week. Keep the momentum going.
           </p>
         </div>
@@ -103,6 +60,26 @@ export default async function StudioPage() {
           Weekly Summary <ArrowRight className="h-3.5 w-3.5" />
         </LinkButton>
       </div>
+    </div>
+  );
+}
+
+function QuietStat({
+  icon,
+  label,
+  value,
+  tone = "default",
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  tone?: "default" | "warn";
+}) {
+  return (
+    <div className="inline-flex items-center gap-2 rounded-lg border border-line bg-surface/55 px-3 py-2 text-sm">
+      <span className={tone === "warn" ? "text-warning" : "text-muted"}>{icon}</span>
+      <span className="font-semibold text-fg">{value}</span>
+      <span className="text-xs text-muted">{label}</span>
     </div>
   );
 }

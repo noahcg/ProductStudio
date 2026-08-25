@@ -22,8 +22,18 @@ export function Donut({
   const radius = (size - thickness) / 2;
   const circumference = 2 * Math.PI * radius;
   const gap = 3; // px gap between segments
-
-  let offset = 0;
+  const renderedSegments = segments.map((seg, i) => {
+    const offset = segments.slice(0, i).reduce((acc, prev) => {
+      return acc + (prev.amount / total) * circumference;
+    }, 0);
+    const len = (seg.amount / total) * circumference;
+    const dash = Math.max(len - gap, 0);
+    return {
+      ...seg,
+      dashArray: `${dash} ${circumference - dash}`,
+      dashOffset: -offset,
+    };
+  });
 
   return (
     <div className="relative grid place-items-center" style={{ width: size, height: size }}>
@@ -36,12 +46,7 @@ export function Donut({
           stroke="var(--line)"
           strokeWidth={thickness}
         />
-        {segments.map((seg, i) => {
-          const len = (seg.amount / total) * circumference;
-          const dash = Math.max(len - gap, 0);
-          const dashArray = `${dash} ${circumference - dash}`;
-          const dashOffset = -offset;
-          offset += len;
+        {renderedSegments.map((seg, i) => {
           return (
             <circle
               key={i}
@@ -51,8 +56,8 @@ export function Donut({
               fill="none"
               stroke={seg.color}
               strokeWidth={thickness}
-              strokeDasharray={dashArray}
-              strokeDashoffset={dashOffset}
+              strokeDasharray={seg.dashArray}
+              strokeDashoffset={seg.dashOffset}
               strokeLinecap="round"
             />
           );
