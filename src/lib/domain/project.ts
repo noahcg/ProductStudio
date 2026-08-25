@@ -39,3 +39,15 @@ export interface Project {
   /** primary domain name (denormalized from the owned Domain entity) */
   domain?: string;
 }
+
+/** Fields accepted when creating/editing a project locally or in the DB. */
+export interface ProjectInput {
+  name: string;
+  tagline: string;
+  status: ProjectStatus;
+  nextMilestone: string;
+  accent: ProjectAccent;
+  icon: ProjectIcon;
+  repo?: string;
+  domain?: string;
+}

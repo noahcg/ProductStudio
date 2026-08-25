@@ -3,6 +3,7 @@
 # project files
 /mocks
 /prompts
+/.product-studio
 
 # dependencies
 /node_modules

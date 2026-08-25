@@ -254,6 +254,16 @@ export function supabaseSource(sb: SupabaseClient): DataSource {
         }));
     },
 
+    async createProject(): Promise<Project> {
+      throw new Error("Project creation is not implemented for Supabase yet. Use DATA_SOURCE=local.");
+    },
+    async updateProject(): Promise<Project> {
+      throw new Error("Project editing is not implemented for Supabase yet. Use DATA_SOURCE=local.");
+    },
+    async deleteProject(): Promise<void> {
+      throw new Error("Project deletion is not implemented for Supabase yet. Use DATA_SOURCE=local.");
+    },
+
     // ---- Writes (Decisions) ----
 
     async createDecision(input: DecisionInput): Promise<Decision> {

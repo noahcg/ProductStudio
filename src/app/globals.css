@@ -54,33 +54,57 @@
 }
 
 .light {
-  /* Light — cool, sophisticated neutrals (not pastel). Crisp white cards float
-     over a soft, slightly cool page so they pop; the atmosphere sky shows in the
-     gaps. Deep slate text + confident, deeper accents (no candy brights). */
-  --bg: #e9ecf2;
-  --bg-elevated: #ffffff;
-  --surface: #ffffff;
-  --surface-2: #f4f6fa;
-  --line: #e2e6ee;
-  --line-strong: #ccd2de;
+  /* Light — shades open. Regions need to read as usable sheets first and glass
+     second, so the material is pale blue, mostly opaque, and heavily blurred. */
+  --bg: #eaf5ff;
+  --bg-elevated: #f4faff;
+  --surface: #eef7ff;
+  --surface-2: #dcebfb;
+  --line: rgba(89, 133, 185, 0.26);
+  --line-strong: rgba(62, 104, 164, 0.36);
 
-  --fg: #1a1f2b;
-  --muted: #525b6f;
-  --faint: #828b9f;
+  --fg: #0b1b2e;
+  --muted: #243f60;
+  --faint: #496989;
 
-  --accent: #5b45e0;
+  --accent: #6350d8;
   --accent-fg: #ffffff;
-  --success: #0c9b72;
-  --warning: #b1740a;
-  --danger: #d23350;
-  --info: #2a62d8;
+  --success: #0d936e;
+  --warning: #a86d08;
+  --danger: #c7354d;
+  --info: #315fc9;
 }
 
-/* Studio project cards use a translucent surface so the dark atmosphere bleeds
-   through nicely. In light mode that same translucency reads as washed-out over
-   the bright sky, so keep them near-opaque there. Dark keeps the glassy /70. */
-html.light .project-card {
-  background-color: color-mix(in srgb, var(--surface) 93%, transparent);
+/* Light mode uses lower-glare materials. Tailwind opacity utilities still apply
+   broadly, so reinforce the main recurring surfaces here. */
+html.light .project-card,
+html.light .bg-surface\/70,
+html.light .bg-surface\/60,
+html.light .bg-surface\/55 {
+  background-color: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(18px) saturate(1.08);
+  box-shadow: 0 18px 44px -34px rgba(29, 91, 165, 0.3);
+}
+
+html.light .bg-surface,
+html.light .bg-surface-2,
+html.light .bg-surface-2\/60,
+html.light .bg-surface-2\/50,
+html.light .bg-surface-2\/45,
+html.light .bg-surface-2\/40 {
+  background-color: color-mix(in srgb, var(--surface-2) 78%, transparent);
+  backdrop-filter: blur(14px) saturate(1.04);
+}
+
+html.light .bg-bg\/80 {
+  background-color: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(18px) saturate(1.08);
+  box-shadow: 0 14px 34px -32px rgba(29, 91, 165, 0.24);
+}
+
+html.light .bg-bg\/55 {
+  background-color: color-mix(in srgb, var(--bg) 76%, transparent);
+  backdrop-filter: blur(14px) saturate(1.04);
 }
 
 * {
@@ -108,8 +132,8 @@ body {
   z-index: -2;
   pointer-events: none;
   background:
-    radial-gradient(900px 500px at 12% -8%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 60%),
-    radial-gradient(800px 500px at 92% -10%, color-mix(in srgb, var(--info) 10%, transparent), transparent 55%),
+    radial-gradient(900px 500px at 12% -8%, color-mix(in srgb, var(--accent) 11%, transparent), transparent 60%),
+    radial-gradient(800px 500px at 92% -10%, color-mix(in srgb, var(--info) 8%, transparent), transparent 55%),
     var(--bg);
 }
 
@@ -176,21 +200,34 @@ html.light:not(.atmosphere-off) .atmosphere {
   display: block;
 }
 
-/* Light theme — a bright, airy wash instead of the dark overlay, so the sky
-   reads as a soft backdrop behind crisp white cards. Lighter through the middle
-   (where the image shows between cards), heavier top/bottom to protect headings
-   and the dense footer content. */
+/* Light theme leaves the room photo unobscured. Page-level text gets its own
+   treatment below instead of relying on a full-screen scrim. */
 html.light .atmosphere::after {
-  background:
-    radial-gradient(110% 80% at 50% -10%, rgba(255, 255, 255, 0.42), transparent 60%),
-    radial-gradient(120% 95% at 50% 118%, rgba(232, 236, 243, 0.82), transparent 72%),
-    linear-gradient(180deg, rgba(233, 237, 244, 0.74) 0%, rgba(233, 237, 244, 0.42) 30%, rgba(233, 237, 244, 0.46) 62%, rgba(233, 237, 244, 0.8) 100%),
-    rgba(233, 237, 244, 0.34);
+  content: none;
+}
+
+html.light .atmosphere {
+  filter: saturate(0.88) contrast(0.94) brightness(0.98);
+}
+
+html.light .page-heading-title {
+  color: #172027;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.7),
+    0 0 18px rgba(247, 250, 248, 0.62),
+    0 10px 28px rgba(255, 255, 255, 0.38);
+}
+
+html.light .page-heading-subtitle {
+  color: #32404a;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.62),
+    0 0 14px rgba(247, 250, 248, 0.56);
 }
 
 /* Mobile: drop the (expensive) heavy header blur; the image stays visible. */
 @media (max-width: 640px) {
-  .atmosphere::after {
+  html.dark .atmosphere::after {
     background:
       linear-gradient(180deg, rgba(5, 11, 24, 0.5) 0%, rgba(5, 11, 24, 0.25) 40%, rgba(5, 11, 24, 0.62) 100%),
       rgba(5, 11, 24, 0.80);

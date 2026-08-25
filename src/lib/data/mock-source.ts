@@ -1,6 +1,9 @@
 import type {
   Decision,
   DecisionInput,
+  Project,
+  ProjectInput,
+  Milestone,
   RoadmapItem,
   RoadmapInput,
   RoadmapPlacement,
@@ -59,6 +62,68 @@ export const mockSource: DataSource = {
   },
   async spendTrend() {
     return spendTrend;
+  },
+
+  async createProject(input: ProjectInput) {
+    const id = uniqueSlug(slugify(input.name), projects);
+    const project: Project = {
+      id,
+      name: input.name,
+      tagline: input.tagline,
+      status: input.status,
+      progress: 0,
+      nextMilestone: input.nextMilestone,
+      openTasks: 0,
+      blockers: 0,
+      lastActivityIso: studioNow().toISOString(),
+      accent: input.accent,
+      icon: input.icon,
+      repo: input.repo?.trim() || undefined,
+      domain: input.domain?.trim() || undefined,
+    };
+    const milestone: Milestone = {
+      id: uniqueSlug(`m-${id}`, milestones),
+      projectId: id,
+      title: input.nextMilestone,
+      summary: `Drive ${input.name} toward the "${input.nextMilestone}" milestone.`,
+      priority: "Medium",
+      progress: 0,
+      status: "active",
+    };
+    projects.push(project);
+    milestones.push(milestone);
+    return project;
+  },
+  async updateProject(id: string, input: ProjectInput) {
+    const i = projects.findIndex((p) => p.id === id);
+    if (i === -1) throw new Error(`Project ${id} not found`);
+    const previous = projects[i];
+    const updated: Project = {
+      ...previous,
+      name: input.name,
+      tagline: input.tagline,
+      status: input.status,
+      nextMilestone: input.nextMilestone,
+      accent: input.accent,
+      icon: input.icon,
+      repo: input.repo?.trim() || undefined,
+      domain: input.domain?.trim() || undefined,
+    };
+    projects[i] = updated;
+    const milestone = milestones.find((m) => m.projectId === id && m.status === "active");
+    if (milestone) milestone.title = input.nextMilestone;
+    return updated;
+  },
+  async deleteProject(id: string) {
+    removeWhere(projects, (p) => p.id === id);
+    removeWhere(milestones, (m) => m.projectId === id);
+    removeWhere(tasks, (t) => t.projectId === id);
+    removeWhere(roadmap, (r) => r.projectId === id);
+    removeWhere(decisions, (d) => d.projectId === id);
+    removeWhere(activity, (a) => a.projectId === id);
+    removeWhere(signals, (s) => s.projectId === id);
+    removeWhere(expenses, (e) => e.projectId === id);
+    removeWhere(domains, (d) => d.projectId === id);
   },
 
   // ---- Writes: mutate the in-memory `decisions` array (ephemeral dev store) ----
@@ -160,6 +225,30 @@ function newId(prefix: string): string {
   return typeof crypto !== "undefined" && crypto.randomUUID
     ? crypto.randomUUID()
     : `${prefix}-${Date.now()}`;
+}
+
+function slugify(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48) || "project";
+}
+
+function uniqueSlug(base: string, existing: { id: string }[]): string {
+  const taken = new Set(existing.map((item) => item.id));
+  if (!taken.has(base)) return base;
+  for (let i = 2; ; i += 1) {
+    const next = `${base}-${i}`;
+    if (!taken.has(next)) return next;
+  }
+}
+
+function removeWhere<T>(items: T[], predicate: (item: T) => boolean) {
+  for (let i = items.length - 1; i >= 0; i -= 1) {
+    if (predicate(items[i])) items.splice(i, 1);
+  }
 }
 
 function nextSortOrder(items: { sortOrder: number }[]): number {

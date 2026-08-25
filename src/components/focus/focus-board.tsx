@@ -1,7 +1,7 @@
 "use client";
 
 import { useOptimistic, useState, useTransition } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Check,
   CircleDot,
@@ -11,8 +11,9 @@ import {
   Trash2,
   Ban,
   Sparkles,
+  Settings,
 } from "lucide-react";
-import type { Task, TaskInput, TaskStatus, Project, Milestone, Domain } from "@/lib/domain";
+import type { Task, TaskInput, TaskStatus, Project, ProjectInput, Milestone, Domain } from "@/lib/domain";
 import type { ProjectFocus } from "@/lib/focus/engine";
 import type { ProjectHealth } from "@/lib/health/engine";
 import type { VercelProjectStatus } from "@/lib/integrations/vercel/types";
@@ -23,6 +24,7 @@ import { Card, Badge, PageHeading, Button } from "@/components/ui";
 import { ProgressRing } from "@/components/donut";
 import { projectIcons } from "@/components/icons";
 import { MeetingNotes } from "@/components/studio/meeting-notes";
+import { ProjectForm } from "@/components/projects/project-form";
 import { TaskForm } from "./task-form";
 import { HealthSummary } from "./health-summary";
 import { DomainPanel } from "./domain-panel";
@@ -34,13 +36,19 @@ import {
   deleteTaskAction,
   setTaskStatusAction,
 } from "@/app/focus/actions";
+import {
+  createProjectAction,
+  updateProjectAction,
+  deleteProjectAction,
+} from "@/app/projects/actions";
 
 type OptimisticAction =
   | { type: "add"; task: Task }
   | { type: "update"; task: Task }
   | { type: "remove"; id: string };
 
-type Modal = { mode: "closed" } | { mode: "new" } | { mode: "edit"; task: Task };
+type TaskModal = { mode: "closed" } | { mode: "new" } | { mode: "edit"; task: Task };
+type ProjectModal = { mode: "closed" } | { mode: "new" } | { mode: "edit"; project: Project };
 
 const priorityDot: Record<string, string> = {
   critical: "bg-danger",
@@ -68,10 +76,14 @@ export function FocusBoard({
   vercel: Record<string, VercelProjectStatus>;
   supabase: Record<string, SupabaseProjectStatus>;
 }) {
+  const router = useRouter();
   const params = useSearchParams();
+  const [localProjects, setLocalProjects] = useState(projects);
   const [selectedId, setSelectedId] = useState(params.get("project") ?? projects[0]?.id ?? "");
-  const [modal, setModal] = useState<Modal>({ mode: "closed" });
+  const [taskModal, setTaskModal] = useState<TaskModal>({ mode: "closed" });
+  const [projectModal, setProjectModal] = useState<ProjectModal>({ mode: "closed" });
   const [error, setError] = useState<string | null>(null);
+  const [projectError, setProjectError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const [optimistic, applyOptimistic] = useOptimistic(tasks, (state: Task[], a: OptimisticAction) => {
@@ -85,20 +97,21 @@ export function FocusBoard({
     }
   });
 
-  const project = projects.find((p) => p.id === selectedId);
+  const project = localProjects.find((p) => p.id === selectedId) ?? localProjects[0];
+  const effectiveSelectedId = project?.id ?? selectedId;
   const milestone =
-    milestones.find((m) => m.projectId === selectedId && m.status === "active") ??
-    milestones.find((m) => m.projectId === selectedId);
+    milestones.find((m) => m.projectId === effectiveSelectedId && m.status === "active") ??
+    milestones.find((m) => m.projectId === effectiveSelectedId);
   const milestoneTasks = milestone ? optimistic.filter((t) => t.milestoneId === milestone.id) : [];
   const stats = taskStats(milestoneTasks);
-  const selectedHealth = health.find((h) => h.project.id === selectedId);
-  const selectedDomains = domains.filter((d) => d.projectId === selectedId);
-  const selectedDeployment = vercel[selectedId];
-  const selectedSupabase = supabase[selectedId];
-  const selectedRec = ranked.find((r) => r.project.id === selectedId);
+  const selectedHealth = health.find((h) => h.project.id === effectiveSelectedId);
+  const selectedDomains = domains.filter((d) => d.projectId === effectiveSelectedId);
+  const selectedDeployment = vercel[effectiveSelectedId];
+  const selectedSupabase = supabase[effectiveSelectedId];
+  const selectedRec = ranked.find((r) => r.project.id === effectiveSelectedId);
 
   function close() {
-    setModal({ mode: "closed" });
+    setTaskModal({ mode: "closed" });
     setError(null);
   }
 
@@ -106,7 +119,7 @@ export function FocusBoard({
     if (!project) return;
     setError(null);
     const input: TaskInput = { projectId: project.id, milestoneId: milestone?.id, ...fields };
-    const editing = modal.mode === "edit" ? modal.task : null;
+    const editing = taskModal.mode === "edit" ? taskModal.task : null;
     startTransition(async () => {
       if (editing) {
         applyOptimistic({ type: "update", task: { ...editing, ...input } });
@@ -141,6 +154,40 @@ export function FocusBoard({
     });
   }
 
+  function submitProject(input: ProjectInput) {
+    setProjectError(null);
+    const editing = projectModal.mode === "edit" ? projectModal.project : null;
+    startTransition(async () => {
+      if (editing) {
+        setLocalProjects((state) =>
+          state.map((p) => (p.id === editing.id ? { ...p, ...input } : p))
+        );
+        const res = await updateProjectAction(editing.id, input);
+        if (!res.ok) return setProjectError(res.error);
+        setSelectedId(editing.id);
+      } else {
+        const res = await createProjectAction(input);
+        if (!res.ok) return setProjectError(res.error);
+        if (res.projectId) setSelectedId(res.projectId);
+      }
+      setProjectModal({ mode: "closed" });
+      router.refresh();
+    });
+  }
+
+  function removeProject() {
+    if (!project) return;
+    if (!confirm(`Delete “${project.name}” and all of its tasks, goals, and notes?`)) return;
+    const nextProject = localProjects.find((p) => p.id !== project.id);
+    startTransition(async () => {
+      const res = await deleteProjectAction(project.id);
+      if (!res.ok) return setProjectError(res.error);
+      setLocalProjects((state) => state.filter((p) => p.id !== project.id));
+      setSelectedId(nextProject?.id ?? "");
+      router.refresh();
+    });
+  }
+
   return (
     <div className="space-y-6">
       <PageHeading
@@ -150,15 +197,19 @@ export function FocusBoard({
 
       {!project ? (
         <Card className="p-10 text-center text-sm text-muted">
-          No projects yet. Add a project to start tracking tasks and notes.
+          <p>No projects yet. Add a project to start tracking tasks and notes.</p>
+          <Button className="mt-4" variant="primary" onClick={() => setProjectModal({ mode: "new" })}>
+            <Plus className="h-4 w-4" /> Add project
+          </Button>
         </Card>
       ) : (
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-[280px_minmax(0,1fr)_360px]">
           <ProjectSwitcher
-            projects={projects}
+            projects={localProjects}
             tasks={optimistic}
-            selectedId={selectedId}
+            selectedId={effectiveSelectedId}
             onSelect={setSelectedId}
+            onNew={() => setProjectModal({ mode: "new" })}
           />
 
           <div className="flex flex-col gap-5">
@@ -182,7 +233,7 @@ export function FocusBoard({
 
               <div className="mt-6 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-fg">Tasks</h3>
-                <Button variant="subtle" className="text-xs" onClick={() => setModal({ mode: "new" })}>
+                <Button variant="subtle" className="text-xs" onClick={() => setTaskModal({ mode: "new" })}>
                   <Plus className="h-3.5 w-3.5" /> Add task
                 </Button>
               </div>
@@ -210,7 +261,7 @@ export function FocusBoard({
                         onToggleBlock={() =>
                           setStatus(task, task.status === "blocked" ? "todo" : "blocked")
                         }
-                        onEdit={() => setModal({ mode: "edit", task })}
+                        onEdit={() => setTaskModal({ mode: "edit", task })}
                         onDelete={() => removeTask(task)}
                       />
                     ))}
@@ -222,7 +273,7 @@ export function FocusBoard({
                     ? "No tasks for this milestone yet."
                     : "No tasks for this project yet."}
                   <div className="mt-3">
-                    <Button variant="primary" onClick={() => setModal({ mode: "new" })}>
+                    <Button variant="primary" onClick={() => setTaskModal({ mode: "new" })}>
                       <Plus className="h-4 w-4" /> Add task
                     </Button>
                   </div>
@@ -231,11 +282,37 @@ export function FocusBoard({
               {error && <p className="mt-3 text-sm text-danger">{error}</p>}
             </Card>
 
-            <MeetingNotes projects={projects} projectId={project.id} />
+            <MeetingNotes projects={localProjects} projectId={project.id} />
           </div>
 
           <div className="flex flex-col gap-5">
-            {selectedRec && <ProjectSuggestion rec={selectedRec} isTop={ranked[0]?.project.id === selectedId} />}
+            <Card className="p-5">
+              <div className="flex items-center gap-2">
+                <Settings className="h-4 w-4 text-accent" />
+                <h3 className="text-[15px] font-semibold tracking-tight text-fg">Project</h3>
+              </div>
+              <dl className="mt-4 space-y-2.5 text-xs">
+                <Row label="Status">{project.status}</Row>
+                <Row label="Current goal">{project.nextMilestone}</Row>
+                <Row label="Repo">{project.repo ?? "Not connected"}</Row>
+                <Row label="Domain">{project.domain ?? "Not set"}</Row>
+              </dl>
+              {projectError && <p className="mt-3 text-xs text-danger">{projectError}</p>}
+              <div className="mt-4 flex gap-2 border-t border-line pt-4">
+                <Button
+                  variant="subtle"
+                  className="flex-1 text-xs"
+                  onClick={() => setProjectModal({ mode: "edit", project })}
+                >
+                  Edit
+                </Button>
+                <Button variant="ghost" className="text-xs text-danger hover:text-danger" onClick={removeProject}>
+                  Delete
+                </Button>
+              </div>
+            </Card>
+
+            {selectedRec && <ProjectSuggestion rec={selectedRec} isTop={ranked[0]?.project.id === effectiveSelectedId} />}
             {selectedHealth && <HealthSummary health={selectedHealth} />}
             <DeploymentPanel status={selectedDeployment} />
             <SupabasePanel status={selectedSupabase} />
@@ -245,14 +322,34 @@ export function FocusBoard({
       )}
 
       <TaskForm
-        open={modal.mode !== "closed"}
-        initial={modal.mode === "edit" ? modal.task : null}
+        open={taskModal.mode !== "closed"}
+        initial={taskModal.mode === "edit" ? taskModal.task : null}
         milestoneTitle={milestone ? `${project?.name} — ${milestone.title}` : project?.name}
         pending={pending}
         error={error}
         onSubmit={submitTask}
         onClose={close}
       />
+      <ProjectForm
+        open={projectModal.mode !== "closed"}
+        initial={projectModal.mode === "edit" ? projectModal.project : null}
+        pending={pending}
+        error={projectError}
+        onSubmit={submitProject}
+        onClose={() => {
+          setProjectModal({ mode: "closed" });
+          setProjectError(null);
+        }}
+      />
+    </div>
+  );
+}
+
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <dt className="text-faint">{label}</dt>
+      <dd className="min-w-0 truncate text-right font-medium text-muted">{children}</dd>
     </div>
   );
 }
@@ -262,17 +359,24 @@ function ProjectSwitcher({
   tasks,
   selectedId,
   onSelect,
+  onNew,
 }: {
   projects: Project[];
   tasks: Task[];
   selectedId: string;
   onSelect: (id: string) => void;
+  onNew: () => void;
 }) {
   return (
     <Card className="h-fit p-3">
-      <div className="px-2 pb-2 pt-1">
-        <h2 className="text-[15px] font-semibold tracking-tight text-fg">Projects</h2>
-        <p className="mt-1 text-xs text-muted">Select a workspace.</p>
+      <div className="flex items-center justify-between gap-3 px-2 pb-2 pt-1">
+        <div>
+          <h2 className="text-[15px] font-semibold tracking-tight text-fg">Projects</h2>
+          <p className="mt-1 text-xs text-muted">Select a workspace.</p>
+        </div>
+        <Button variant="subtle" className="h-8 px-2 text-xs" onClick={onNew}>
+          <Plus className="h-3.5 w-3.5" />
+        </Button>
       </div>
       <div className="space-y-1">
         {projects.map((project) => {

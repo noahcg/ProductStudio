@@ -1,5 +1,6 @@
 import type {
   Project,
+  ProjectInput,
   Milestone,
   Task,
   TaskInput,
@@ -17,17 +18,19 @@ import type {
   SpendTrendPoint,
 } from "../domain";
 import { getSupabase } from "@/lib/supabase/server";
+import { localSource } from "./local-source";
 import { mockSource } from "./mock-source";
 import { supabaseSource } from "./supabase-source";
 
 /**
  * Low-level data source: returns ready-mapped domain entities. Two
- * implementations — `mockSource` (local fixtures) and `supabaseSource`
- * (database). The public repository in `index.ts` composes/derives everything
- * else (focus view, spend aggregates, studio stats) on top of these.
+ * implementations — `localSource` (persistent JSON), `mockSource` (fixtures),
+ * and `supabaseSource` (database). The public repository in `index.ts`
+ * composes/derives everything else (focus view, spend aggregates, studio stats)
+ * on top of these.
  */
 export interface DataSource {
-  readonly kind: "mock" | "supabase";
+  readonly kind: "local" | "mock" | "supabase";
   projects(): Promise<Project[]>;
   milestones(): Promise<Milestone[]>;
   tasks(): Promise<Task[]>;
@@ -39,6 +42,11 @@ export interface DataSource {
   expenses(): Promise<Expense[]>;
   domains(): Promise<Domain[]>;
   spendTrend(): Promise<SpendTrendPoint[]>;
+
+  // Writes (Projects / portfolio).
+  createProject(input: ProjectInput): Promise<Project>;
+  updateProject(id: string, input: ProjectInput): Promise<Project>;
+  deleteProject(id: string): Promise<void>;
 
   // Writes (Decisions / product memory).
   createDecision(input: DecisionInput): Promise<Decision>;
@@ -60,11 +68,12 @@ export interface DataSource {
   setTaskStatus(id: string, status: TaskStatus): Promise<Task>;
 }
 
-/** Choose the active source: Supabase when configured, else mock. */
+/** Choose the active source: local JSON by default, Supabase when configured. */
 export function activeSource(): DataSource {
   if (process.env.DATA_SOURCE === "mock") return mockSource;
+  if (process.env.DATA_SOURCE === "local") return localSource;
   const client = getSupabase();
-  if (!client) return mockSource;
+  if (!client) return localSource;
   return supabaseSource(client);
 }
 
@@ -75,14 +84,14 @@ export function activeSource(): DataSource {
  */
 export async function withSource<T>(fn: (s: DataSource) => Promise<T>): Promise<T> {
   const src = activeSource();
-  if (src.kind === "mock") return fn(src);
+  if (src.kind !== "supabase") return fn(src);
   try {
     return await fn(src);
   } catch (err) {
     console.warn(
-      "[data] Supabase fetch failed; falling back to mock fixtures.",
+      "[data] Supabase fetch failed; falling back to local data.",
       (err as Error)?.message ?? err
     );
-    return fn(mockSource);
+    return fn(localSource);
   }
 }

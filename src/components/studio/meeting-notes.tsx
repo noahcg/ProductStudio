@@ -6,6 +6,7 @@ import type { Project, TaskPriority } from "@/lib/domain";
 import { Button, Card, Textarea } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { createTaskAction } from "@/app/focus/actions";
+import { setLocalStorageValue, useLocalStorageValue } from "@/lib/client-store";
 
 interface StoredNote {
   id: string;
@@ -35,10 +36,9 @@ interface MeetingSummary {
 
 const key = "product-studio-meeting-notes";
 
-function readNotes(): StoredNote[] {
-  if (typeof window === "undefined") return [];
+function parseNotes(value: string): StoredNote[] {
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(key) ?? "[]");
+    const parsed = JSON.parse(value);
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
@@ -46,7 +46,7 @@ function readNotes(): StoredNote[] {
 }
 
 function writeNotes(notes: StoredNote[]) {
-  window.localStorage.setItem(key, JSON.stringify(notes));
+  setLocalStorageValue(key, JSON.stringify(notes));
 }
 
 export function MeetingNotes({
@@ -58,7 +58,8 @@ export function MeetingNotes({
 }) {
   const [selectedProjectId, setSelectedProjectId] = useState(projectId ?? projects[0]?.id ?? "");
   const activeProjectId = projectId ?? selectedProjectId;
-  const [notes, setNotes] = useState<StoredNote[]>(readNotes);
+  const notesValue = useLocalStorageValue(key, "[]");
+  const notes = useMemo(() => parseNotes(notesValue), [notesValue]);
   const [body, setBody] = useState("");
   const [recording, setRecording] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -87,7 +88,6 @@ export function MeetingNotes({
       tasks: [],
     };
     const next = [note, ...notes];
-    setNotes(next);
     writeNotes(next);
     setBody("");
   }
@@ -158,7 +158,6 @@ export function MeetingNotes({
       transcript: summary.transcript,
     };
     const next = [note, ...notes];
-    setNotes(next);
     writeNotes(next);
   }
 

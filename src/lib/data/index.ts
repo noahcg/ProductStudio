@@ -14,6 +14,7 @@
  */
 import type {
   Project,
+  ProjectInput,
   Milestone,
   Task,
   TaskInput,
@@ -73,6 +74,18 @@ export async function getProject(id?: string): Promise<Project | undefined> {
 /** Convenience map for screens that resolve many project references at once. */
 export async function getProjectMap(): Promise<Map<string, Project>> {
   return withSource(async (s) => new Map((await s.projects()).map((p) => [p.id, p])));
+}
+
+export async function createProject(input: ProjectInput): Promise<Project> {
+  return activeSource().createProject(input);
+}
+
+export async function updateProject(id: string, input: ProjectInput): Promise<Project> {
+  return activeSource().updateProject(id, input);
+}
+
+export async function deleteProject(id: string): Promise<void> {
+  return activeSource().deleteProject(id);
 }
 
 // ---- Milestones (owned by projects) ----
