@@ -315,8 +315,8 @@ export function FocusBoard({
 
             {selectedRec && <ProjectSuggestion rec={selectedRec} isTop={ranked[0]?.project.id === effectiveSelectedId} />}
             {selectedHealth && <HealthSummary health={selectedHealth} />}
-            <DeploymentPanel status={selectedDeployment} />
-            <SupabasePanel status={selectedSupabase} />
+            <DeploymentPanel projectId={effectiveSelectedId} status={selectedDeployment} />
+            <SupabasePanel projectId={effectiveSelectedId} status={selectedSupabase} />
             <DomainPanel domains={selectedDomains} />
           </div>
         </div>

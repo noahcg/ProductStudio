@@ -1,3 +1,5 @@
+import { projectLinks } from "../project-links";
+
 /**
  * Vercel integration configuration.
  *
@@ -10,11 +12,9 @@
  */
 
 /** Project (slug) → connected Vercel projects. Supports multiple per project. */
-export const VERCEL_PROJECT_MAP: Record<string, string[]> = {
-  "home-cooked": ["home-cooked-production"],
-  "wardrobe-harmony": ["wardrobe-harmony-production"],
-  "personal-trainer": ["personal-trainer-production"],
-};
+export const VERCEL_PROJECT_MAP: Record<string, string[]> = Object.fromEntries(
+  Object.entries(projectLinks).map(([id, link]) => [id, [link.vercelName]])
+);
 
 export type VercelMode = "live" | "off";
 

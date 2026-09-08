@@ -45,3 +45,35 @@ const isolated = require('../src/lib/data/local-source.ts').localSource;
   assert.equal(disk.tasks.find(task => task.id === created.id).scheduledDate, undefined);
   console.log('Passed: date/time validation, local calendar dates, persistence, completion, rescheduling, and clearing schedules.');
 })().finally(() => { process.chdir(originalCwd); fs.rmSync(sandbox, { recursive: true, force: true }); }).catch(error => { console.error(error); process.exitCode = 1; });
+
+const { taskReminder, openTasksByReminder } = require('../src/lib/tasks/reminders.ts');
+const moment = new Date(2026, 8, 8, 10, 0);
+const base = { projectId: 'home-cooked', title: 'Task', status: 'todo', createdAt: '2026-09-01T12:00:00Z' };
+const reminderTasks = [
+  { ...base, id: 'unscheduled' },
+  { ...base, id: 'tomorrow', scheduledDate: '2026-09-09' },
+  { ...base, id: 'today', scheduledDate: '2026-09-08' },
+  { ...base, id: 'overdue-time', scheduledDate: '2026-09-08', scheduledTime: '09:00' },
+  { ...base, id: 'overdue-date', scheduledDate: '2026-09-07' },
+  { ...base, id: 'completed', status: 'completed', scheduledDate: '2026-09-07' },
+];
+assert.deepEqual(openTasksByReminder(reminderTasks, moment).map(t => t.id), ['overdue-date', 'overdue-time', 'today', 'tomorrow', 'unscheduled']);
+assert.equal(taskReminder(reminderTasks[2], moment).kind, 'Today');
+assert.equal(taskReminder(reminderTasks[5], moment), null);
+assert.equal(taskReminder({ ...base, scheduledDate: '2027-01-01' }, new Date(2026, 11, 31, 12)).kind, 'Tomorrow');
+assert.equal(taskReminder({ ...base, scheduledDate: '2026-09-08', scheduledTime: '10:00' }, moment).kind, 'Today');
+const { computeFocus } = require('../src/lib/focus/engine.ts');
+const focus = computeFocus({ projects: [{ id: 'home-cooked', name: 'HomeCooked', status: 'Active', lastActivityIso: '' }], milestones: [{ id: 'm', projectId: 'home-cooked', title: 'Goal', status: 'active', progress: 0 }], tasks: [{ ...base, id: 'unlinked' }, { ...base, id: 'linked', milestoneId: 'm' }], roadmap: [], decisions: [], activity: [], signals: [] }, moment);
+assert.equal(focus.current.stats.total, 2);
+assert.equal(focus.current.tasksRemaining, 2);
+console.log('Passed: reminder ordering, completion exclusion, local day/year boundaries, and project tasks without milestone links.');
+
+const { projectDomains } = require('../src/lib/domains/project-domains.ts');
+const domainProject = { id: 'home-cooked', domain: 'https://tryhomecooked.com/' };
+const derivedDomains = projectDomains([domainProject], []);
+assert.equal(derivedDomains[0].name, 'tryhomecooked.com');
+assert.equal(derivedDomains[0].autoRenew, undefined);
+assert.equal(derivedDomains[0].sslStatus, 'unknown');
+assert.equal(projectDomains([domainProject], [{ ...derivedDomains[0], registrar: 'Known registrar' }]).length, 1);
+assert.equal(projectDomains([{ ...domainProject, domain: '' }], []).length, 0);
+console.log('Passed: saved project domains appear without duplicate or invented monitoring data.');

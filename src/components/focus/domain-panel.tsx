@@ -30,6 +30,7 @@ function expiryLabel(domain: Domain): string {
 
 export function DomainPanel({ domains }: { domains: Domain[] }) {
   const health = domainHealth(domains);
+  const checked = domains.every((d) => d.lastCheckedAt);
 
   return (
     <Card className="p-5">
@@ -37,7 +38,7 @@ export function DomainPanel({ domains }: { domains: Domain[] }) {
         <Globe className="h-4 w-4 text-accent" />
         <h3 className="text-[15px] font-semibold tracking-tight text-fg">Domains</h3>
         {domains.length > 0 && (
-          <span className={cn("ml-auto text-xs font-medium", healthTone[health])}>{health}</span>
+          <span className={cn("ml-auto text-xs font-medium", checked ? healthTone[health] : "text-muted")}>{checked ? health : "Not checked"}</span>
         )}
       </div>
 
@@ -50,7 +51,7 @@ export function DomainPanel({ domains }: { domains: Domain[] }) {
             return (
               <li key={d.id} className="rounded-xl border border-line bg-surface-2/40 p-3.5">
                 <div className="flex items-center gap-2">
-                  <span className="truncate text-sm font-semibold text-fg">{d.name}</span>
+                  <a href={`https://${d.name}`} target="_blank" rel="noreferrer" className="truncate text-sm font-semibold text-info hover:underline">{d.name} ↗</a>
                   <span className="ml-auto text-[11px] text-faint">{d.registrar ?? "Unknown registrar"}</span>
                 </div>
 
@@ -69,11 +70,11 @@ export function DomainPanel({ domains }: { domains: Domain[] }) {
                       <span className="flex items-center gap-1.5 text-warning">
                         <RefreshCwOff className="h-3.5 w-3.5" /> Off
                       </span>
-                    ) : (
+                    ) : d.autoRenew === true ? (
                       <span className="flex items-center gap-1.5 text-success">
                         <RefreshCw className="h-3.5 w-3.5" /> On
                       </span>
-                    )}
+                    ) : <span className="text-muted">Unknown</span>}
                   </Field>
                   {d.expiresAt && (
                     <Field label="Renews">

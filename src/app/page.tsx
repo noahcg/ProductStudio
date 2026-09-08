@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { Activity, AlertTriangle, ArrowRight, DollarSign, Star } from "lucide-react";
 import {
   getWeeklySummary,
@@ -15,6 +16,7 @@ import { MorningProjects } from "@/components/studio/morning-projects";
 import { currency } from "@/lib/utils";
 
 export default async function StudioPage() {
+  await connection();
   const [weekly, profile, stats] = await Promise.all([
     getWeeklySummary(),
     getProfile(),

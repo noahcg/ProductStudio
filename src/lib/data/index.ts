@@ -1,3 +1,4 @@
+import { projectDomains } from "../domains/project-domains";
 /**
  * Product Studio data layer (repository seam).
  *
@@ -131,16 +132,16 @@ export async function setTaskStatus(id: string, status: TaskStatus): Promise<Tas
 // ---- Domains (owned by projects) ----
 
 export async function getDomains(): Promise<Domain[]> {
-  return withSource((s) => s.domains());
+  return withSource(async (s) => projectDomains(await s.projects(), await s.domains()));
 }
 
 export async function getDomainsForProject(projectId: string): Promise<Domain[]> {
-  return withSource(async (s) => (await s.domains()).filter((d) => d.projectId === projectId));
+  return (await getDomains()).filter((d) => d.projectId === projectId);
 }
 
 /** Per-project worst domain health, for the Studio cards. */
 export async function getDomainHealthByProject(): Promise<Record<string, DomainHealth>> {
-  return withSource(async (s) => domainHealthByProject(await s.domains()));
+  return domainHealthByProject(await getDomains());
 }
 
 // ---- Focus (derived view: top project's active milestone + its tasks) ----
@@ -161,7 +162,7 @@ const EMPTY_FOCUS: Focus = {
 async function pipeline(
   s: DataSource
 ): Promise<FocusInput & { generatedSignals: GeneratedSignal[] }> {
-  const [projects, milestones, roadmap, tasks, decisions, baseActivity, signals, expenses, domains] =
+  const [projects, milestones, roadmap, tasks, decisions, baseActivity, signals, expenses, storedDomains] =
     await Promise.all([
       s.projects(),
       s.milestones(),
@@ -173,6 +174,8 @@ async function pipeline(
       s.expenses(),
       s.domains(),
     ]);
+
+  const domains = projectDomains(projects, storedDomains);
 
   // Integrations: augment the activity feed, signals, and health. Integrations
   // are never the source of truth for the domain entities above.
@@ -308,14 +311,13 @@ export async function getFocus(): Promise<Focus> {
     const input = await pipeline(s);
     const cur = computeFocus(input).current;
     if (!cur) return EMPTY_FOCUS;
-    if (!cur.milestone) return { ...EMPTY_FOCUS, projectId: cur.project.id, title: cur.project.name };
     return {
       projectId: cur.project.id,
-      title: `${cur.project.name} — ${cur.milestone.title}`,
-      priority: cur.milestone.priority,
-      summary: cur.milestone.summary,
-      progress: cur.milestone.progress,
-      tasks: input.tasks.filter((t) => t.milestoneId === cur.milestone!.id),
+      title: `${cur.project.name} — ${cur.milestone?.title || cur.project.nextMilestone || "No current goal"}`,
+      priority: cur.milestone?.priority ?? "Medium",
+      summary: cur.milestone?.summary ?? "",
+      progress: cur.stats.progress,
+      tasks: input.tasks.filter((t) => t.projectId === cur.project.id),
     };
   });
 }

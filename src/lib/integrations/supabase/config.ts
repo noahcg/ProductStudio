@@ -1,3 +1,5 @@
+import { projectLinks } from "../project-links";
+
 /**
  * Supabase monitoring configuration.
  *
@@ -14,11 +16,9 @@
  */
 
 /** Project (slug) → connected Supabase project(s). One today; many supported. */
-export const SUPABASE_PROJECT_MAP: Record<string, string[]> = {
-  "home-cooked": ["home-cooked-db"],
-  "wardrobe-harmony": ["wardrobe-harmony-db"],
-  "personal-trainer": ["personal-trainer-db"],
-};
+export const SUPABASE_PROJECT_MAP: Record<string, string[]> = Object.fromEntries(
+  Object.entries(projectLinks).map(([id, link]) => [id, [link.supabaseRef]])
+);
 
 export type SupabaseMode = "live" | "off";
 

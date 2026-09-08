@@ -1,3 +1,4 @@
+import { projectLinks } from "@/lib/integrations/project-links";
 import { Rocket, CircleCheck, CircleX, Loader, CircleSlash, CircleDashed } from "lucide-react";
 import type { VercelProjectStatus, DeploymentState, DeploymentHealth } from "@/lib/integrations/vercel/types";
 import { relativeTime, cn } from "@/lib/utils";
@@ -18,7 +19,8 @@ const stateMeta: Record<DeploymentState, { label: string; tone: string; Icon: ty
   unknown: { label: "Unknown", tone: "text-faint", Icon: CircleDashed },
 };
 
-export function DeploymentPanel({ status }: { status?: VercelProjectStatus }) {
+export function DeploymentPanel({ status, projectId }: { status?: VercelProjectStatus; projectId: string }) {
+  const link = projectLinks[projectId];
   return (
     <Card className="p-5">
       <div className="flex items-center gap-2">
@@ -32,8 +34,8 @@ export function DeploymentPanel({ status }: { status?: VercelProjectStatus }) {
       {!status || !status.connected ? (
         <p className="mt-3 text-xs text-muted">
           {status && status.vercelProjects.length > 0
-            ? "Deployment status unavailable."
-            : "No Vercel project configured."}
+            ? "Deployment status unavailable. Check the monitoring connection."
+            : link ? "Project linked. Live monitoring needs an access token and must be enabled." : "No Vercel project configured."}
         </p>
       ) : (
         <dl className="mt-4 space-y-2.5 text-xs">
@@ -57,6 +59,10 @@ export function DeploymentPanel({ status }: { status?: VercelProjectStatus }) {
           )}
         </dl>
       )}
+      {link && <div className="mt-4 flex flex-wrap gap-3 text-xs">
+        <a className="text-info hover:underline" href={link.vercelDashboard} target="_blank" rel="noreferrer">Open Vercel ↗</a>
+        <a className="text-info hover:underline" href={link.deploymentUrl} target="_blank" rel="noreferrer">Saved deployment ↗</a>
+      </div>}
     </Card>
   );
 }

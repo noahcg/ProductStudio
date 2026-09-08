@@ -112,8 +112,8 @@ function scoreProject(
 
   const projectMilestones = input.milestones.filter((m) => m.projectId === project.id);
   const milestone = projectMilestones.find((m) => m.status === "active") ?? projectMilestones[0];
-  const milestoneTasks = milestone ? input.tasks.filter((t) => t.milestoneId === milestone.id) : [];
-  const stats = taskStats(milestoneTasks);
+  const projectTasks = input.tasks.filter((t) => t.projectId === project.id);
+  const stats = taskStats(projectTasks);
 
   // Progress (task-derived; falls back to the milestone's stored estimate if it
   // has no tasks yet) — nearing completion is high-leverage.
