@@ -16,6 +16,8 @@ import { projectDomains } from "../domains/project-domains";
 import type {
   Project,
   ProjectInput,
+  Product,
+  ProductInput,
   Milestone,
   Task,
   TaskInput,
@@ -63,6 +65,14 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 const sum = (ns: number[]) => ns.reduce((a, b) => a + b, 0);
 
 // ---- Projects ----
+
+export async function getProducts(): Promise<Product[]> {
+  return withSource((s) => s.products());
+}
+
+export async function createProduct(input: ProductInput): Promise<Product> {
+  return activeSource().createProduct(input);
+}
 
 export async function getProjects(): Promise<Project[]> {
   return withSource((s) => s.projects());
@@ -308,18 +318,26 @@ export async function getProjectHealth(): Promise<ProjectHealth[]> {
 /** The Current Focus, shaped as the Focus view the Studio/Focus panels render. */
 export async function getFocus(): Promise<Focus> {
   return withSource(async (s) => {
-    const input = await pipeline(s);
+    const [input, products] = await Promise.all([pipeline(s), s.products()]);
     const cur = computeFocus(input).current;
     if (!cur) return EMPTY_FOCUS;
+    const goal = cur.milestone?.title || cur.project.nextMilestone || "No current goal";
+    const goalDuplicatesProject = sameLabel(goal, cur.project.name);
+    const productName = products.find((product) => product.id === cur.project.productId)?.name;
+    const heading = productName ? `${productName} — ${cur.project.name}` : cur.project.name;
     return {
       projectId: cur.project.id,
-      title: `${cur.project.name} — ${cur.milestone?.title || cur.project.nextMilestone || "No current goal"}`,
+      title: goalDuplicatesProject ? heading : `${heading} — ${goal}`,
       priority: cur.milestone?.priority ?? "Medium",
-      summary: cur.milestone?.summary ?? "",
+      summary: goalDuplicatesProject ? "" : cur.milestone?.summary ?? "",
       progress: cur.stats.progress,
       tasks: input.tasks.filter((t) => t.projectId === cur.project.id),
     };
   });
+}
+
+function sameLabel(a: string | undefined, b: string | undefined) {
+  return Boolean(a?.trim() && b?.trim() && a.trim().localeCompare(b.trim(), undefined, { sensitivity: "accent" }) === 0);
 }
 
 // ---- Decisions ----
@@ -433,9 +451,9 @@ export async function getWeeklySummary(): Promise<WeeklySummary> {
 
 export async function getStudioStats(): Promise<StudioStats> {
   return withSource(async (s) => {
-    const [projects, expenses] = await Promise.all([s.projects(), s.expenses()]);
+    const [products, projects, expenses] = await Promise.all([s.products(), s.projects(), s.expenses()]);
     return {
-      projects: projects.length,
+      products: products.length,
       active: projects.filter((p) => p.status === "Active").length,
       needsAttention: alerts.filter((a) => a.kind === "stale" || a.kind === "blocker").length,
       monthlySpend: round2(sum(expenses.map((e) => e.amount))),

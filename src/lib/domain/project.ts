@@ -1,4 +1,4 @@
-import type { ProjectId } from "./ids";
+import type { ProductId, ProjectId } from "./ids";
 
 export type ProjectStatus = "Active" | "Planning" | "Content" | "Paused" | "Shipped";
 
@@ -7,9 +7,9 @@ export type ProjectAccent = "amber" | "violet" | "blue" | "orange" | "green" | "
 export type ProjectIcon = "chef" | "shirt" | "dumbbell" | "sofa";
 
 /**
- * A Project is the aggregate root of the Product Studio domain. It OWNS its
- * milestones, tasks, roadmap items, decisions, activity, expenses, domains,
- * and signals — each of those references this project by `id`.
+ * A Project belongs to one Product and owns its milestones, tasks, roadmap
+ * items, decisions, activity, expenses, domains, and signals — each of those
+ * references this project by `id`.
  *
  * A few fields here (`nextMilestone`, `openTasks`, `blockers`,
  * `lastActivityIso`, `domain`) are denormalized snapshots that the UI reads
@@ -19,6 +19,7 @@ export type ProjectIcon = "chef" | "shirt" | "dumbbell" | "sofa";
  */
 export interface Project {
   id: ProjectId;
+  productId: ProductId;
   name: string;
   tagline: string;
   status: ProjectStatus;
@@ -42,12 +43,13 @@ export interface Project {
 
 /** Fields accepted when creating/editing a project locally or in the DB. */
 export interface ProjectInput {
+  productId: ProductId;
   name: string;
-  tagline: string;
-  status: ProjectStatus;
-  nextMilestone: string;
-  accent: ProjectAccent;
-  icon: ProjectIcon;
+  tagline?: string;
+  status?: ProjectStatus;
+  nextMilestone?: string;
+  accent?: ProjectAccent;
+  icon?: ProjectIcon;
   repo?: string;
   domain?: string;
 }

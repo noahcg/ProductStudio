@@ -1,8 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import type { ProjectInput } from "@/lib/domain";
-import { createProject, updateProject, deleteProject } from "@/lib/data";
+import type { ProductInput, ProjectInput } from "@/lib/domain";
+import { createProduct, createProject, updateProject, deleteProject } from "@/lib/data";
 
 export type ProjectActionResult =
   | { ok: true; projectId?: string }
@@ -10,8 +10,7 @@ export type ProjectActionResult =
 
 function validate(input: ProjectInput): string | null {
   if (!input.name.trim()) return "Project name is required.";
-  if (!input.tagline.trim()) return "Tagline is required.";
-  if (!input.nextMilestone.trim()) return "Current goal is required.";
+  if (!input.productId) return "Choose a product first.";
   return null;
 }
 
@@ -37,6 +36,17 @@ export async function createProjectAction(input: ProjectInput): Promise<ProjectA
   }
 }
 
+export async function createProductAction(input: ProductInput): Promise<ProjectActionResult> {
+  if (!input.name.trim()) return { ok: false, error: "Product name is required." };
+  try {
+    const product = await createProduct(input);
+    revalidate();
+    return { ok: true, projectId: product.id };
+  } catch (e) {
+    return { ok: false, error: (e as Error)?.message ?? "Failed to create product." };
+  }
+}
+
 export async function updateProjectAction(id: string, input: ProjectInput): Promise<ProjectActionResult> {
   const err = validate(input);
   if (err) return { ok: false, error: err };
@@ -58,4 +68,3 @@ export async function deleteProjectAction(id: string): Promise<ProjectActionResu
     return { ok: false, error: (e as Error)?.message ?? "Failed to delete project." };
   }
 }
-

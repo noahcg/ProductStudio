@@ -10,6 +10,8 @@ import type {
   Milestone,
   Project,
   ProjectInput,
+  Product,
+  ProductInput,
   RoadmapInput,
   RoadmapItem,
   RoadmapPlacement,
@@ -22,6 +24,7 @@ import type {
 import { now as studioNow } from "../clock";
 import type { DataSource } from "./source";
 import { projects } from "./projects";
+import { products } from "./products";
 import { milestones } from "./milestones";
 import { tasks } from "./tasks";
 import { roadmap } from "./roadmap";
@@ -32,7 +35,8 @@ import { expenses, spendTrend } from "./spend";
 import { domains } from "./domains";
 
 interface LocalStore {
-  version: 1;
+  version: 2;
+  products: Product[];
   projects: Project[];
   milestones: Milestone[];
   tasks: Task[];
@@ -50,7 +54,8 @@ const storePath = path.join(process.cwd(), ".product-studio", "data.json");
 
 function seedStore(): LocalStore {
   return clone({
-    version: 1,
+    version: 2,
+    products,
     projects,
     milestones,
     tasks,
@@ -95,6 +100,18 @@ function clone<T>(value: T): T {
 }
 
 function normalizeStore(store: LocalStore): LocalStore {
+  // Upgrade the former flat portfolio without losing any existing work. Each
+  // legacy project becomes the first project inside a product of the same name.
+  if (!Array.isArray(store.products)) {
+    store.products = store.projects.map((project) => ({ id: project.id, name: project.name }));
+    store.projects = store.projects.map((project) => ({
+      ...project,
+      productId: project.id,
+      name: project.id === "home-cooked" ? "Launch MVP" : project.name,
+      tagline: project.tagline ?? "",
+    }));
+  }
+  store.version = 2;
   const fallbackDate = studioNow().toISOString();
   store.tasks = store.tasks.map((task) => ({
     ...task,
@@ -191,16 +208,17 @@ function fromDecisionInput(input: DecisionInput): Omit<Decision, "id"> {
 
 function fromProjectInput(input: ProjectInput): Omit<Project, "id"> {
   return {
+    productId: input.productId,
     name: input.name,
-    tagline: input.tagline,
-    status: input.status,
+    tagline: input.tagline?.trim() || "",
+    status: input.status ?? "Active",
     progress: 0,
-    nextMilestone: input.nextMilestone,
+    nextMilestone: input.nextMilestone?.trim() || "",
     openTasks: 0,
     blockers: 0,
     lastActivityIso: studioNow().toISOString(),
-    accent: input.accent,
-    icon: input.icon,
+    accent: input.accent ?? "blue",
+    icon: input.icon ?? "dumbbell",
     repo: input.repo?.trim() || undefined,
     domain: input.domain?.trim() || undefined,
   };
@@ -211,6 +229,9 @@ export const localSource: DataSource = {
 
   async projects() {
     return (await readStore()).projects;
+  },
+  async products() {
+    return (await readStore()).products;
   },
   async milestones() {
     return (await readStore()).milestones;
@@ -243,22 +264,22 @@ export const localSource: DataSource = {
     return (await readStore()).spendTrend;
   },
 
+  async createProduct(input: ProductInput) {
+    return mutate((store) => {
+      const id = uniqueSlug(slugify(input.name), store.products);
+      const product: Product = { id, name: input.name.trim() };
+      store.products.push(product);
+      return product;
+    });
+  },
   async createProject(input: ProjectInput) {
     return mutate((store) => {
+      if (!store.products.some((product) => product.id === input.productId)) {
+        throw new Error("Choose a product before creating a project.");
+      }
       const id = uniqueSlug(slugify(input.name), store.projects);
       const project: Project = { id, ...fromProjectInput(input) };
-      const milestoneId = uniqueSlug(`m-${id}`, store.milestones);
-      const milestone: Milestone = {
-        id: milestoneId,
-        projectId: id,
-        title: input.nextMilestone,
-        summary: `Drive ${input.name} toward the "${input.nextMilestone}" milestone.`,
-        priority: "Medium",
-        progress: 0,
-        status: "active",
-      };
       store.projects.push(project);
-      store.milestones.push(milestone);
       return project;
     });
   },
@@ -277,21 +298,6 @@ export const localSource: DataSource = {
         lastActivityIso: previous.lastActivityIso,
       };
       store.projects[i] = updated;
-      const milestone = store.milestones.find((m) => m.projectId === id && m.status === "active");
-      if (milestone) {
-        milestone.title = input.nextMilestone;
-        milestone.summary = milestone.summary || `Drive ${input.name} toward the "${input.nextMilestone}" milestone.`;
-      } else {
-        store.milestones.push({
-          id: uniqueSlug(`m-${id}`, store.milestones),
-          projectId: id,
-          title: input.nextMilestone,
-          summary: "",
-          priority: "Medium",
-          progress: 0,
-          status: "active",
-        });
-      }
       return updated;
     });
   },

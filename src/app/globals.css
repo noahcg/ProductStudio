@@ -210,75 +210,83 @@ html.light .atmosphere {
   filter: saturate(0.88) contrast(0.94) brightness(0.98);
 }
 
-html.light .page-heading-title {
+/* A square gradient backing borrows its colors from each studio scene.
+   Feather only the top and bottom, keeping full color behind the text. */
+html.light .heading-backdrop {
+  --heading-start: #a7bbd8;
+  --heading-middle: #b0b1d3;
+  --heading-end: #9ebdc9;
+  --heading-shadow: #576689;
+  position: relative;
+  isolation: isolate;
+}
+
+html.light.tod-sunrise .heading-backdrop {
+  --heading-start: #edbd92;
+  --heading-middle: #dfb6ac;
+  --heading-end: #b6bdcf;
+  --heading-shadow: #9e7162;
+}
+
+html.light.tod-afternoon .heading-backdrop {
+  --heading-start: #b3cbbb;
+  --heading-middle: #b2ccdc;
+  --heading-end: #b7bed6;
+  --heading-shadow: #557e87;
+}
+
+html.light.tod-sunset .heading-backdrop {
+  --heading-start: #edb58e;
+  --heading-middle: #dfaea6;
+  --heading-end: #c1b1cd;
+  --heading-shadow: #9c6874;
+}
+
+html.light:not(.atmosphere-off) .heading-backdrop::before {
+  content: "";
+  position: absolute;
+  inset: -16px -12px;
+  z-index: -1;
+  pointer-events: none;
+  border: 0;
+  border-radius: 0;
+  background: linear-gradient(
+    110deg,
+    color-mix(in srgb, var(--heading-start) 92%, transparent),
+    color-mix(in srgb, var(--heading-middle) 90%, transparent) 52%,
+    color-mix(in srgb, var(--heading-end) 90%, transparent)
+  );
+  box-shadow: 0 5px 18px -7px color-mix(in srgb, var(--heading-shadow) 38%, transparent);
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 14px,
+    #000 calc(100% - 14px),
+    transparent
+  );
+}
+
+html.light .page-heading-title,
+html.light .greeting-title {
   color: #172027;
-  text-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.7),
-    0 0 18px rgba(247, 250, 248, 0.62),
-    0 10px 28px rgba(255, 255, 255, 0.38);
+  text-shadow: none;
 }
 
-html.light .page-heading-subtitle {
-  color: #32404a;
-  text-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.62),
-    0 0 14px rgba(247, 250, 248, 0.56);
+html.light .page-heading-subtitle,
+html.light .greeting-subtitle {
+  color: #293844;
+  text-shadow: none;
 }
 
-/*
-  Greeting contrast treatment. The atmosphere can put the greeting over a
-  bright window, foliage, or a dark wall, so the text carries its own thin
-  halo rather than relying on a backing panel. The inner stroke remains close
-  to the page's surface color, while the soft outer shadow separates the
-  letterforms from busy image detail.
-*/
-.greeting-title,
-.greeting-subtitle {
-  paint-order: stroke fill;
-}
-
+/* Dark mode keeps a soft shadow without outlining the letterforms. */
 .greeting-title {
-  -webkit-text-stroke: 1px rgba(3, 8, 20, 0.88);
   text-shadow:
-    -1px -1px 0 rgba(3, 8, 20, 0.88),
-    1px -1px 0 rgba(3, 8, 20, 0.88),
-    -1px 1px 0 rgba(3, 8, 20, 0.88),
-    1px 1px 0 rgba(3, 8, 20, 0.88),
     0 3px 14px rgba(0, 0, 0, 0.48),
     0 0 22px rgba(0, 0, 0, 0.38);
 }
 
 .greeting-subtitle {
-  -webkit-text-stroke: 0.6px rgba(3, 8, 20, 0.82);
-  text-shadow:
-    -0.75px -0.75px 0 rgba(3, 8, 20, 0.82),
-    0.75px -0.75px 0 rgba(3, 8, 20, 0.82),
-    -0.75px 0.75px 0 rgba(3, 8, 20, 0.82),
-    0.75px 0.75px 0 rgba(3, 8, 20, 0.82),
-    0 2px 9px rgba(0, 0, 0, 0.48);
-}
-
-/* In light mode, a pale keyline preserves the dark text over foliage and
-   window frames, while the text itself stays naturally strong over clouds. */
-html.light .greeting-title {
-  -webkit-text-stroke-color: rgba(250, 253, 255, 0.84);
-  text-shadow:
-    -1px -1px 0 rgba(250, 253, 255, 0.84),
-    1px -1px 0 rgba(250, 253, 255, 0.84),
-    -1px 1px 0 rgba(250, 253, 255, 0.84),
-    1px 1px 0 rgba(250, 253, 255, 0.84),
-    0 3px 14px rgba(7, 19, 38, 0.36),
-    0 0 22px rgba(250, 253, 255, 0.52);
-}
-
-html.light .greeting-subtitle {
-  -webkit-text-stroke-color: rgba(250, 253, 255, 0.8);
-  text-shadow:
-    -0.75px -0.75px 0 rgba(250, 253, 255, 0.8),
-    0.75px -0.75px 0 rgba(250, 253, 255, 0.8),
-    -0.75px 0.75px 0 rgba(250, 253, 255, 0.8),
-    0.75px 0.75px 0 rgba(250, 253, 255, 0.8),
-    0 2px 9px rgba(7, 19, 38, 0.36);
+  text-shadow: 0 2px 9px rgba(0, 0, 0, 0.48);
 }
 
 /* Mobile: drop the (expensive) heavy header blur; the image stays visible. */

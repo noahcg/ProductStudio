@@ -146,7 +146,7 @@ export function PageHeading({
 }) {
   return (
     <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
-      <div>
+      <div className="heading-backdrop min-w-0 max-w-full">
         <h1 className="page-heading-title text-3xl font-bold tracking-tight text-fg">{title}</h1>
         {subtitle && <p className="page-heading-subtitle mt-1 text-sm text-muted">{subtitle}</p>}
       </div>

@@ -8,10 +8,13 @@
 
 truncate
   expense_snapshots, domains, expenses, signals, activity_items, decisions,
-  tasks, roadmap_items, milestones, projects, integrations
+  tasks, roadmap_items, milestones, projects, products, integrations
   restart identity cascade;
 
+insert into products (slug, name)
+values ('home-cooked', 'Home Cooked');
+
 insert into projects
-  (slug, name, tagline, status, progress, next_milestone, open_tasks, blockers, accent, icon, repo, primary_domain, position)
+  (slug, product_id, name, tagline, status, progress, next_milestone, open_tasks, blockers, accent, icon, repo, primary_domain, position)
 values
-  ('home-cooked', 'Home Cooked', 'Cookbook Platform', 'Active', 0, null, 0, 0, 'amber', 'chef', 'noahg/home-cooked', 'tryhomecooked.com', 1);
+  ('home-cooked', (select id from products where slug = 'home-cooked'), 'Launch MVP', '', 'Active', 0, null, 0, 0, 'amber', 'chef', 'noahg/home-cooked', 'tryhomecooked.com', 1);

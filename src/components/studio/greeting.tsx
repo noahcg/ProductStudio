@@ -27,7 +27,7 @@ export function Greeting({ name }: { name: string }) {
   );
 
   return (
-    <div>
+    <div className="heading-backdrop min-w-0 max-w-full">
       <h1 className="greeting-title text-4xl font-bold tracking-tight text-fg">
         {greeting}, {name}.
       </h1>

@@ -70,7 +70,7 @@ export interface Profile {
 
 /** Headline counters on the Studio stat row. */
 export interface StudioStats {
-  projects: number;
+  products: number;
   active: number;
   needsAttention: number;
   monthlySpend: number;

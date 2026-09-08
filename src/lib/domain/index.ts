@@ -7,6 +7,7 @@
  * Single-user: there is intentionally no user / team / account model.
  */
 export * from "./ids";
+export * from "./product";
 export * from "./project";
 export * from "./milestone";
 export * from "./task";

@@ -7,8 +7,9 @@ import type { Project } from "../domain";
 export const projects: Project[] = [
   {
     id: "home-cooked",
-    name: "Home Cooked",
-    tagline: "Cookbook Platform",
+    productId: "home-cooked",
+    name: "Launch MVP",
+    tagline: "",
     status: "Active",
     progress: 0,
     nextMilestone: "",

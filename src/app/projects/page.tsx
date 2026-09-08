@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { FocusBoard } from "@/components/focus/focus-board";
 import {
   getProjects,
+  getProducts,
   getMilestones,
   getTasks,
   getFocusResult,
@@ -15,7 +16,8 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function ProjectsPage() {
-  const [projects, milestones, tasks, result, health, domains, vercel, supabase] = await Promise.all([
+  const [products, projects, milestones, tasks, result, health, domains, vercel, supabase] = await Promise.all([
+    getProducts(),
     getProjects(),
     getMilestones(),
     getTasks(),
@@ -29,6 +31,7 @@ export default async function ProjectsPage() {
   return (
     <Suspense fallback={<div className="text-sm text-muted">Loading projects…</div>}>
       <FocusBoard
+        products={products}
         projects={projects}
         ranked={result.ranked}
         milestones={milestones}
@@ -41,4 +44,3 @@ export default async function ProjectsPage() {
     </Suspense>
   );
 }
-

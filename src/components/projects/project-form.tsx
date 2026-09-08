@@ -23,6 +23,7 @@ const ICONS: { value: ProjectIcon; label: string }[] = [
 type ProjectFormProps = {
   open: boolean;
   initial?: Project | null;
+  productId?: string;
   pending: boolean;
   error?: string | null;
   onSubmit: (input: ProjectInput) => void;
@@ -37,6 +38,7 @@ export function ProjectForm(props: ProjectFormProps) {
 
 function ProjectFormFields({
   initial,
+  productId,
   pending,
   error,
   onSubmit,
@@ -54,6 +56,7 @@ function ProjectFormFields({
   function submit(e: React.FormEvent) {
     e.preventDefault();
     onSubmit({
+      productId: initial?.productId ?? productId ?? "",
       name,
       tagline,
       status,
@@ -87,16 +90,17 @@ function ProjectFormFields({
 
         <form onSubmit={submit} className="space-y-4">
           <Field label="Project name">
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Client Portal" autoFocus />
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Launch MVP" autoFocus />
           </Field>
-          <Field label="Short label">
-            <Input value={tagline} onChange={(e) => setTagline(e.target.value)} placeholder="Client operations" />
-          </Field>
-          <Field label="Current goal">
-            <Input value={nextMilestone} onChange={(e) => setNextMilestone(e.target.value)} placeholder="Launch MVP" />
-          </Field>
+          {initial && <>
+            <Field label="Short label">
+              <Input value={tagline} onChange={(e) => setTagline(e.target.value)} placeholder="Optional" />
+            </Field>
+            <Field label="Current goal">
+              <Input value={nextMilestone} onChange={(e) => setNextMilestone(e.target.value)} placeholder="Optional" />
+            </Field>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Field label="Status">
               <Select value={status} onChange={(e) => setStatus(e.target.value as ProjectStatus)}>
                 {STATUSES.map((s) => (
@@ -118,23 +122,24 @@ function ProjectFormFields({
                 ))}
               </Select>
             </Field>
-          </div>
+            </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="GitHub repo">
               <Input value={repo} onChange={(e) => setRepo(e.target.value)} placeholder="owner/repo" />
             </Field>
             <Field label="Domain">
               <Input value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="example.com" />
             </Field>
-          </div>
+            </div>
+          </>}
 
           {error && <p className="text-sm text-danger">{error}</p>}
 
           <div className="flex items-center justify-end gap-2 border-t border-line pt-4">
             <Button type="button" variant="subtle" onClick={onClose}>Cancel</Button>
             <Button type="submit" variant="primary" disabled={pending}>
-              {pending ? "Saving..." : initial ? "Save changes" : "Add project"}
+              {pending ? "Saving..." : initial ? "Save changes" : "Create project"}
             </Button>
           </div>
         </form>

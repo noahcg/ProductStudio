@@ -11,7 +11,7 @@ import {
   Sparkles,
   Settings,
 } from "lucide-react";
-import type { Task, TaskInput, TaskStatus, Project, ProjectInput, Milestone, Domain } from "@/lib/domain";
+import type { Task, TaskInput, TaskStatus, Product, ProductInput, Project, ProjectInput, Milestone, Domain } from "@/lib/domain";
 import type { ProjectFocus } from "@/lib/focus/engine";
 import type { ProjectHealth } from "@/lib/health/engine";
 import type { VercelProjectStatus } from "@/lib/integrations/vercel/types";
@@ -23,6 +23,7 @@ import { ProgressRing } from "@/components/donut";
 import { projectIcons } from "@/components/icons";
 import { MeetingNotes } from "@/components/studio/meeting-notes";
 import { ProjectForm } from "@/components/projects/project-form";
+import { ProductForm } from "@/components/products/product-form";
 import { TaskCalendar } from "./task-calendar";
 import { TaskForm } from "./task-form";
 import { HealthSummary } from "./health-summary";
@@ -37,6 +38,7 @@ import {
 } from "@/app/focus/actions";
 import {
   createProjectAction,
+  createProductAction,
   updateProjectAction,
   deleteProjectAction,
 } from "@/app/projects/actions";
@@ -50,6 +52,7 @@ type TaskModal = { mode: "closed" } | { mode: "new"; date?: string } | { mode: "
 type ProjectModal = { mode: "closed" } | { mode: "new" } | { mode: "edit"; project: Project };
 
 export function FocusBoard({
+  products,
   projects,
   ranked,
   milestones,
@@ -59,6 +62,7 @@ export function FocusBoard({
   vercel,
   supabase,
 }: {
+  products: Product[];
   projects: Project[];
   ranked: ProjectFocus[];
   milestones: Milestone[];
@@ -70,10 +74,13 @@ export function FocusBoard({
 }) {
   const router = useRouter();
   const params = useSearchParams();
+  const [localProducts, setLocalProducts] = useState(products);
   const [localProjects, setLocalProjects] = useState(projects);
+  const [selectedProductId, setSelectedProductId] = useState(params.get("product") ?? projects[0]?.productId ?? products[0]?.id ?? "");
   const [selectedId, setSelectedId] = useState(params.get("project") ?? projects[0]?.id ?? "");
   const [taskModal, setTaskModal] = useState<TaskModal>({ mode: "closed" });
   const [projectModal, setProjectModal] = useState<ProjectModal>({ mode: "closed" });
+  const [productModalOpen, setProductModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [projectError, setProjectError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -89,11 +96,15 @@ export function FocusBoard({
     }
   });
 
-  const project = localProjects.find((p) => p.id === selectedId) ?? localProjects[0];
+  const projectsForProduct = localProjects.filter((p) => p.productId === selectedProductId);
+  const selectedProduct = localProducts.find((p) => p.id === selectedProductId);
+  const project = projectsForProduct.find((p) => p.id === selectedId) ?? projectsForProduct[0];
   const effectiveSelectedId = project?.id ?? selectedId;
   const milestone =
     milestones.find((m) => m.projectId === effectiveSelectedId && m.status === "active") ??
     milestones.find((m) => m.projectId === effectiveSelectedId);
+  const goalTitle = milestone?.title ?? project?.nextMilestone ?? "";
+  const goalDuplicatesProject = Boolean(project && sameLabel(goalTitle, project.name));
   const projectTasks = optimistic.filter((t) => t.projectId === effectiveSelectedId);
   const stats = taskStats(projectTasks);
   const selectedHealth = health.find((h) => h.project.id === effectiveSelectedId);
@@ -165,13 +176,33 @@ export function FocusBoard({
         if (!res.ok) return setProjectError(res.error);
         setSelectedId(editing.id);
       } else {
-        const res = await createProjectAction(input);
+        const res = await createProjectAction({ ...input, productId: selectedProductId });
         if (!res.ok) return setProjectError(res.error);
         if (res.projectId) setSelectedId(res.projectId);
       }
       setProjectModal({ mode: "closed" });
       router.refresh();
     });
+  }
+
+  function submitProduct(input: ProductInput) {
+    setProjectError(null);
+    startTransition(async () => {
+      const res = await createProductAction(input);
+      if (!res.ok) return setProjectError(res.error);
+      if (res.projectId) {
+        setLocalProducts((state) => [...state, { id: res.projectId!, name: input.name.trim() }]);
+        setSelectedProductId(res.projectId);
+        setSelectedId("");
+      }
+      setProductModalOpen(false);
+      router.refresh();
+    });
+  }
+
+  function selectProduct(id: string) {
+    setSelectedProductId(id);
+    setSelectedId(localProjects.find((project) => project.productId === id)?.id ?? "");
   }
 
   function removeProject() {
@@ -189,28 +220,38 @@ export function FocusBoard({
 
   return (
     <div className="space-y-6">
-      <PageHeading
-        title="Projects"
-        subtitle="Open a project to manage its current tasks, goals, notes, and operational context."
-      />
+      <PageHeading title="Products" subtitle="Organize your products, then open a project to manage its tasks and operational context." />
 
-      {!project ? (
+      {localProducts.length === 0 ? (
         <Card className="p-10 text-center text-sm text-muted">
-          <p>No projects yet. Add a project to start tracking tasks and notes.</p>
-          <Button className="mt-4" variant="primary" onClick={() => setProjectModal({ mode: "new" })}>
-            <Plus className="h-4 w-4" /> Add project
+          <p>No products yet. Create a product, then add projects inside it.</p>
+          <Button className="mt-4" variant="primary" onClick={() => setProductModalOpen(true)}>
+            <Plus className="h-4 w-4" /> Create product
           </Button>
         </Card>
       ) : (
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-[280px_minmax(0,1fr)_360px]">
           <ProjectSwitcher
+            products={localProducts}
             projects={localProjects}
             tasks={optimistic}
             selectedId={effectiveSelectedId}
+            selectedProductId={selectedProductId}
             onSelect={setSelectedId}
+            onSelectProduct={selectProduct}
             onNew={() => setProjectModal({ mode: "new" })}
+            onNewProduct={() => setProductModalOpen(true)}
           />
 
+          {!project ? (
+            <Card className="flex min-h-72 flex-col items-center justify-center p-10 text-center">
+              <p className="text-lg font-semibold text-fg">{selectedProduct?.name ?? "This product"} has no projects yet.</p>
+              <p className="mt-2 text-sm text-muted">Create a project to begin adding tasks.</p>
+              <Button className="mt-5" variant="primary" onClick={() => setProjectModal({ mode: "new" })}>
+                <Plus className="h-4 w-4" /> Create project
+              </Button>
+            </Card>
+          ) : <>
           <div className="flex flex-col gap-5">
             <Card className="p-6">
               <div className="flex items-start justify-between gap-6">
@@ -219,14 +260,17 @@ export function FocusBoard({
                     <Badge tone="high">{milestone ? `${milestone.priority} Priority` : "No milestone"}</Badge>
                     <span className="text-xs text-muted">{project.status}</span>
                   </div>
-                  <h2 className="text-2xl font-bold tracking-tight text-fg">{project.name}</h2>
-                  <p className="mt-1 text-lg font-semibold text-fg">
-                    {(milestone?.title ?? project.nextMilestone) || "No current goal"}
-                  </p>
-                  {milestone?.summary && <p className="mt-1 max-w-lg text-sm text-muted">{milestone.summary}</p>}
+                  <p className="text-sm font-medium text-muted">{selectedProduct?.name}</p>
+                  <h2 className="mt-1 text-2xl font-bold tracking-tight text-fg">{project.name}</h2>
+                  {!goalDuplicatesProject && (
+                    <p className="mt-1 text-lg font-semibold text-fg">{goalTitle || "No current goal"}</p>
+                  )}
+                  {!goalDuplicatesProject && milestone?.summary && (
+                    <p className="mt-1 max-w-lg text-sm text-muted">{milestone.summary}</p>
+                  )}
                 </div>
                 {milestone ? (
-                  <ProgressRing value={milestone.progress} size={104} color="var(--success)" />
+                  <ProgressRing value={stats.total ? stats.progress : milestone.progress} size={104} color="var(--success)" />
                 ) : (
                   <Button variant="primary" onClick={() => setProjectModal({ mode: "edit", project })}>
                     Set current goal
@@ -290,11 +334,11 @@ export function FocusBoard({
             <Card className="p-5">
               <div className="flex items-center gap-2">
                 <Settings className="h-4 w-4 text-accent" />
-                <h3 className="text-[15px] font-semibold tracking-tight text-fg">Project</h3>
+                <h3 className="text-[15px] font-semibold tracking-tight text-fg">Project details</h3>
               </div>
               <dl className="mt-4 space-y-2.5 text-xs">
                 <Row label="Status">{project.status}</Row>
-                <Row label="Current goal">{project.nextMilestone || "Not set yet"}</Row>
+                {!goalDuplicatesProject && <Row label="Current goal">{goalTitle || "Not set yet"}</Row>}
                 <Row label="Repo">{project.repo ?? "Not connected"}</Row>
                 <Row label="Domain">{project.domain ?? "Not set"}</Row>
               </dl>
@@ -319,6 +363,7 @@ export function FocusBoard({
             <SupabasePanel projectId={effectiveSelectedId} status={selectedSupabase} />
             <DomainPanel domains={selectedDomains} />
           </div>
+          </>}
         </div>
       )}
 
@@ -326,7 +371,7 @@ export function FocusBoard({
         open={taskModal.mode !== "closed"}
         initial={taskModal.mode === "edit" ? taskModal.task : null}
         initialDate={taskModal.mode === "new" ? taskModal.date : undefined}
-        milestoneTitle={taskModal.mode === "edit" ? localProjects.find((p) => p.id === taskModal.task.projectId)?.name : milestone ? `${project?.name} — ${milestone.title}` : project?.name}
+        milestoneTitle={taskModal.mode === "edit" ? localProjects.find((p) => p.id === taskModal.task.projectId)?.name : goalDuplicatesProject ? project?.name : milestone ? `${project?.name} — ${milestone.title}` : project?.name}
         pending={pending}
         error={error}
         onSubmit={submitTask}
@@ -335,6 +380,7 @@ export function FocusBoard({
       <ProjectForm
         open={projectModal.mode !== "closed"}
         initial={projectModal.mode === "edit" ? projectModal.project : null}
+        productId={selectedProductId}
         pending={pending}
         error={projectError}
         onSubmit={submitProject}
@@ -342,6 +388,13 @@ export function FocusBoard({
           setProjectModal({ mode: "closed" });
           setProjectError(null);
         }}
+      />
+      <ProductForm
+        open={productModalOpen}
+        pending={pending}
+        error={projectError}
+        onSubmit={submitProduct}
+        onClose={() => { setProductModalOpen(false); setProjectError(null); }}
       />
     </div>
   );
@@ -356,53 +409,64 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
+function sameLabel(a: string | undefined, b: string | undefined) {
+  return Boolean(a?.trim() && b?.trim() && a.trim().localeCompare(b.trim(), undefined, { sensitivity: "accent" }) === 0);
+}
+
 function ProjectSwitcher({
+  products,
   projects,
   tasks,
   selectedId,
+  selectedProductId,
   onSelect,
+  onSelectProduct,
   onNew,
+  onNewProduct,
 }: {
+  products: Product[];
   projects: Project[];
   tasks: Task[];
   selectedId: string;
+  selectedProductId: string;
   onSelect: (id: string) => void;
+  onSelectProduct: (id: string) => void;
   onNew: () => void;
+  onNewProduct: () => void;
 }) {
   return (
     <Card className="h-fit p-3">
       <div className="flex items-center justify-between gap-3 px-2 pb-2 pt-1">
         <div>
-          <h2 className="text-[15px] font-semibold tracking-tight text-fg">Projects</h2>
-          <p className="mt-1 text-xs text-muted">Select a workspace.</p>
+          <h2 className="text-[15px] font-semibold tracking-tight text-fg">Products</h2>
+          <p className="mt-1 text-xs text-muted">Projects live inside products.</p>
         </div>
-        <Button variant="subtle" className="h-8 px-2 text-xs" onClick={onNew}>
+        <Button variant="subtle" className="h-8 px-2 text-xs" onClick={onNewProduct} aria-label="Create product">
           <Plus className="h-3.5 w-3.5" />
         </Button>
       </div>
       <div className="space-y-1">
-        {projects.map((project) => {
-          const Icon = projectIcons[project.icon];
-          const open = tasks.filter((task) => task.projectId === project.id && task.status !== "completed").length;
-          const selected = project.id === selectedId;
-          return (
-            <button
-              key={project.id}
-              onClick={() => onSelect(project.id)}
-              className={cn(
-                "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors",
-                selected ? "bg-accent/15 text-fg" : "text-muted hover:bg-surface-2 hover:text-fg"
-              )}
-            >
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-surface-2 text-fg">
-                <Icon className="h-4 w-4" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium">{project.name}</span>
-                <span className="block text-xs text-faint">{open} open tasks</span>
-              </span>
+        {products.map((product) => {
+          const productProjects = projects.filter((project) => project.productId === product.id);
+          const selectedProduct = product.id === selectedProductId;
+          return <div key={product.id} className="rounded-lg">
+            <button onClick={() => onSelectProduct(product.id)} className={cn("flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors", selectedProduct ? "bg-accent/15 text-fg" : "text-muted hover:bg-surface-2 hover:text-fg")}>
+              <span className="truncate text-sm font-semibold">{product.name}</span>
+              <span className="ml-2 shrink-0 text-xs text-faint">{productProjects.length} {productProjects.length === 1 ? "project" : "projects"}</span>
             </button>
-          );
+            {selectedProduct && <div className="ml-3 mt-1 space-y-1 border-l border-line pl-2">
+              {productProjects.map((project) => {
+                const Icon = projectIcons[project.icon];
+                const open = tasks.filter((task) => task.projectId === project.id && task.status !== "completed").length;
+                const selected = project.id === selectedId;
+                return <button key={project.id} onClick={() => onSelect(project.id)} className={cn("flex w-full items-center gap-2 rounded-md px-2 py-2 text-left transition-colors", selected ? "bg-surface-2 text-fg" : "text-muted hover:bg-surface-2 hover:text-fg")}>
+                  <Icon className="h-3.5 w-3.5 shrink-0" />
+                  <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{project.name}</span><span className="block text-xs text-faint">{open} open tasks</span></span>
+                </button>;
+              })}
+              <button onClick={onNew} className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-xs font-medium text-accent hover:bg-surface-2"><Plus className="h-3.5 w-3.5" /> New project</button>
+            </div>}
+          </div>;
         })}
       </div>
     </Card>

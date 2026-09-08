@@ -6,6 +6,7 @@
  * entity carries the `ProjectId` of the project that owns it.
  */
 export type ProjectId = string;
+export type ProductId = string;
 export type MilestoneId = string;
 export type TaskId = string;
 export type RoadmapItemId = string;

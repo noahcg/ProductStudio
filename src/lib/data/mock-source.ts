@@ -3,7 +3,8 @@ import type {
   DecisionInput,
   Project,
   ProjectInput,
-  Milestone,
+  Product,
+  ProductInput,
   RoadmapItem,
   RoadmapInput,
   RoadmapPlacement,
@@ -14,6 +15,7 @@ import type {
 import { now as studioNow } from "../clock";
 import type { DataSource } from "./source";
 import { projects } from "./projects";
+import { products } from "./products";
 import { milestones } from "./milestones";
 import { tasks } from "./tasks";
 import { roadmap } from "./roadmap";
@@ -31,6 +33,9 @@ export const mockSource: DataSource = {
   kind: "mock",
   async projects() {
     return projects;
+  },
+  async products() {
+    return products;
   },
   async milestones() {
     return milestones;
@@ -63,34 +68,33 @@ export const mockSource: DataSource = {
     return spendTrend;
   },
 
+  async createProduct(input: ProductInput) {
+    const product: Product = { id: uniqueSlug(slugify(input.name), products), name: input.name.trim() };
+    products.push(product);
+    return product;
+  },
   async createProject(input: ProjectInput) {
+    if (!products.some((product) => product.id === input.productId)) {
+      throw new Error("Choose a product before creating a project.");
+    }
     const id = uniqueSlug(slugify(input.name), projects);
     const project: Project = {
       id,
+      productId: input.productId,
       name: input.name,
-      tagline: input.tagline,
-      status: input.status,
+      tagline: input.tagline?.trim() || "",
+      status: input.status ?? "Active",
       progress: 0,
-      nextMilestone: input.nextMilestone,
+      nextMilestone: input.nextMilestone?.trim() || "",
       openTasks: 0,
       blockers: 0,
       lastActivityIso: studioNow().toISOString(),
-      accent: input.accent,
-      icon: input.icon,
+      accent: input.accent ?? "blue",
+      icon: input.icon ?? "dumbbell",
       repo: input.repo?.trim() || undefined,
       domain: input.domain?.trim() || undefined,
     };
-    const milestone: Milestone = {
-      id: uniqueSlug(`m-${id}`, milestones),
-      projectId: id,
-      title: input.nextMilestone,
-      summary: `Drive ${input.name} toward the "${input.nextMilestone}" milestone.`,
-      priority: "Medium",
-      progress: 0,
-      status: "active",
-    };
     projects.push(project);
-    milestones.push(milestone);
     return project;
   },
   async updateProject(id: string, input: ProjectInput) {
@@ -100,29 +104,16 @@ export const mockSource: DataSource = {
     const updated: Project = {
       ...previous,
       name: input.name,
-      tagline: input.tagline,
-      status: input.status,
-      nextMilestone: input.nextMilestone,
-      accent: input.accent,
-      icon: input.icon,
+      productId: input.productId,
+      tagline: input.tagline?.trim() || "",
+      status: input.status ?? "Active",
+      nextMilestone: input.nextMilestone?.trim() || "",
+      accent: input.accent ?? "blue",
+      icon: input.icon ?? "dumbbell",
       repo: input.repo?.trim() || undefined,
       domain: input.domain?.trim() || undefined,
     };
     projects[i] = updated;
-    const milestone = milestones.find((m) => m.projectId === id && m.status === "active");
-    if (milestone) {
-      milestone.title = input.nextMilestone;
-    } else {
-      milestones.push({
-        id: uniqueSlug(`m-${id}`, milestones),
-        projectId: id,
-        title: input.nextMilestone,
-        summary: "",
-        priority: "Medium",
-        progress: 0,
-        status: "active",
-      });
-    }
     return updated;
   },
   async deleteProject(id: string) {

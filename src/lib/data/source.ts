@@ -1,6 +1,8 @@
 import type {
   Project,
   ProjectInput,
+  Product,
+  ProductInput,
   Milestone,
   Task,
   TaskInput,
@@ -32,6 +34,7 @@ import { supabaseSource } from "./supabase-source";
 export interface DataSource {
   readonly kind: "local" | "mock" | "supabase";
   projects(): Promise<Project[]>;
+  products(): Promise<Product[]>;
   milestones(): Promise<Milestone[]>;
   tasks(): Promise<Task[]>;
   roadmap(): Promise<RoadmapItem[]>;
@@ -44,6 +47,7 @@ export interface DataSource {
   spendTrend(): Promise<SpendTrendPoint[]>;
 
   // Writes (Projects / portfolio).
+  createProduct(input: ProductInput): Promise<Product>;
   createProject(input: ProjectInput): Promise<Project>;
   updateProject(id: string, input: ProjectInput): Promise<Project>;
   deleteProject(id: string): Promise<void>;

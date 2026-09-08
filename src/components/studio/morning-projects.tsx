@@ -1,5 +1,5 @@
 import { ArrowRight, CircleDot, ListTodo } from "lucide-react";
-import { getMilestones, getProjects, getProjectHealth, getTasks } from "@/lib/data";
+import { getMilestones, getProducts, getProjects, getProjectHealth, getTasks } from "@/lib/data";
 import type { Project, Task } from "@/lib/domain";
 import { Card, LinkButton, Progress } from "@/components/ui";
 import { HealthBadge } from "@/components/health-badge";
@@ -13,7 +13,8 @@ const statusOrder: Record<Task["status"], number> = {
 };
 
 export async function MorningProjects() {
-  const [projects, milestones, tasks, health] = await Promise.all([
+  const [products, projects, milestones, tasks, health] = await Promise.all([
+    getProducts(),
     getProjects(),
     getMilestones(),
     getTasks(),
@@ -21,6 +22,7 @@ export async function MorningProjects() {
   ]);
   const healthById = new Map(health.map((h) => [h.project.id, h]));
   const milestoneByProject = new Map(milestones.map((m) => [m.projectId, m]));
+  const productById = new Map(products.map((product) => [product.id, product]));
 
   return (
     <Card className="p-5">
@@ -30,7 +32,7 @@ export async function MorningProjects() {
           <p className="mt-1 text-xs text-muted">Open work, grouped where your brain expects it.</p>
         </div>
         <LinkButton href="/projects" className="flex items-center gap-1 text-sm">
-          Manage projects <ArrowRight className="h-3.5 w-3.5" />
+          Manage products <ArrowRight className="h-3.5 w-3.5" />
         </LinkButton>
       </div>
 
@@ -39,8 +41,9 @@ export async function MorningProjects() {
           <ProjectTaskCard
             key={project.id}
             project={project}
+            productName={productById.get(project.productId)?.name ?? "Product"}
             tasks={tasksForProject(tasks, project.id)}
-            milestoneTitle={(milestoneByProject.get(project.id)?.title ?? project.nextMilestone) || "No current goal"}
+            milestoneTitle={goalForProject(project, milestoneByProject.get(project.id)?.title)}
             health={healthById.get(project.id)}
           />
         ))}
@@ -51,13 +54,15 @@ export async function MorningProjects() {
 
 function ProjectTaskCard({
   project,
+  productName,
   tasks,
   milestoneTitle,
   health,
 }: {
   project: Project;
+  productName: string;
   tasks: Task[];
-  milestoneTitle: string;
+  milestoneTitle?: string;
   health?: Awaited<ReturnType<typeof getProjectHealth>>[number];
 }) {
   const Icon = projectIcons[project.icon];
@@ -73,8 +78,8 @@ function ProjectTaskCard({
             <Icon className="h-4.5 w-4.5 text-fg" />
           </span>
           <div className="min-w-0">
-            <h3 className="truncate text-sm font-semibold text-fg">{project.name}</h3>
-            <p className="truncate text-xs text-muted">{milestoneTitle}</p>
+            <h3 className="truncate text-sm font-semibold text-fg">{productName}</h3>
+            <p className="truncate text-xs text-muted">{project.name}{milestoneTitle ? ` · ${milestoneTitle}` : ""}</p>
           </div>
         </div>
         {health && <HealthBadge score={health.score} status={health.status} showStatus={false} />}
@@ -106,6 +111,15 @@ function ProjectTaskCard({
       </div>
     </section>
   );
+}
+
+function goalForProject(project: Project, milestoneTitle?: string) {
+  const goal = milestoneTitle ?? project.nextMilestone;
+  return sameLabel(goal, project.name) ? undefined : goal || undefined;
+}
+
+function sameLabel(a: string | undefined, b: string | undefined) {
+  return Boolean(a?.trim() && b?.trim() && a.trim().localeCompare(b.trim(), undefined, { sensitivity: "accent" }) === 0);
 }
 
 function TaskLine({ task }: { task: Task }) {

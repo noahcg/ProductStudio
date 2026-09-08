@@ -6,7 +6,7 @@ export async function StatRow() {
   const stats = await getStudioStats();
 
   const items = [
-    { icon: Box, value: String(stats.projects), label: "Projects", color: "text-accent" },
+    { icon: Box, value: String(stats.products), label: "Products", color: "text-accent" },
     { icon: Activity, value: String(stats.active), label: "Active", color: "text-success" },
     { icon: AlertTriangle, value: String(stats.needsAttention), label: "Needs Attention", color: "text-warning" },
     { icon: CalendarDays, value: currency(stats.monthlySpend), label: "Monthly Spend", color: "text-info" },

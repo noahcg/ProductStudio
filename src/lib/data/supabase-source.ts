@@ -1,6 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   Project,
+  ProjectInput,
+  Product,
+  ProductInput,
   Milestone,
   Task,
   TaskInput,
@@ -45,6 +48,7 @@ function nested(row: Row, key: string): string | undefined {
 function mapProject(r: Row): Project {
   return {
     id: s(r.slug),
+    productId: nested(r, "product") ?? "",
     name: s(r.name),
     tagline: s(r.tagline),
     status: r.status as Project["status"],
@@ -58,6 +62,10 @@ function mapProject(r: Row): Project {
     repo: opt(r.repo),
     domain: opt(r.primary_domain),
   };
+}
+
+function mapProduct(r: Row): Product {
+  return { id: s(r.slug), name: s(r.name) };
 }
 
 function mapMilestone(r: Row): Milestone {
@@ -215,7 +223,10 @@ export function supabaseSource(sb: SupabaseClient): DataSource {
     kind: "supabase",
 
     async projects() {
-      return (await rows("projects", "*", { column: "position" })).map(mapProject);
+      return (await rows("projects", "*, product:products(slug)", { column: "position" })).map(mapProject);
+    },
+    async products() {
+      return (await rows("products", "*", { column: "name" })).map(mapProduct);
     },
     async milestones() {
       return (await rows("milestones", "*, project:projects(slug)", { column: "slug" })).map(mapMilestone);
@@ -272,14 +283,64 @@ export function supabaseSource(sb: SupabaseClient): DataSource {
         }));
     },
 
-    async createProject(): Promise<Project> {
-      throw new Error("Project creation is not implemented for Supabase yet. Use DATA_SOURCE=local.");
+    async createProduct(input: ProductInput): Promise<Product> {
+      const slug = await uniqueSlugFor(sb, "products", input.name, "product");
+      const { data, error } = await sb
+        .from("products")
+        .insert({ slug, name: input.name.trim() })
+        .select("*")
+        .single();
+      if (error) throw error;
+      return mapProduct(data as unknown as Row);
     },
-    async updateProject(): Promise<Project> {
-      throw new Error("Project editing is not implemented for Supabase yet. Use DATA_SOURCE=local.");
+    async createProject(input: ProjectInput): Promise<Project> {
+      const product_id = await productUuid(sb, input.productId);
+      if (!product_id) throw new Error("Choose a product before creating a project.");
+      const slug = await uniqueSlugFor(sb, "projects", input.name, "project");
+      const { data, error } = await sb
+        .from("projects")
+        .insert({
+          slug,
+          product_id,
+          name: input.name.trim(),
+          tagline: input.tagline?.trim() || "",
+          status: input.status ?? "Active",
+          next_milestone: input.nextMilestone?.trim() || null,
+          accent: input.accent ?? "blue",
+          icon: input.icon ?? "dumbbell",
+          repo: input.repo?.trim() || null,
+          primary_domain: input.domain?.trim() || null,
+        })
+        .select("*, product:products(slug)")
+        .single();
+      if (error) throw error;
+      return mapProject(data as unknown as Row);
     },
-    async deleteProject(): Promise<void> {
-      throw new Error("Project deletion is not implemented for Supabase yet. Use DATA_SOURCE=local.");
+    async updateProject(id: string, input: ProjectInput): Promise<Project> {
+      const product_id = await productUuid(sb, input.productId);
+      if (!product_id) throw new Error("Choose a product before saving this project.");
+      const { data, error } = await sb
+        .from("projects")
+        .update({
+          product_id,
+          name: input.name.trim(),
+          tagline: input.tagline?.trim() || "",
+          status: input.status ?? "Active",
+          next_milestone: input.nextMilestone?.trim() || null,
+          accent: input.accent ?? "blue",
+          icon: input.icon ?? "dumbbell",
+          repo: input.repo?.trim() || null,
+          primary_domain: input.domain?.trim() || null,
+        })
+        .eq("slug", id)
+        .select("*, product:products(slug)")
+        .single();
+      if (error) throw error;
+      return mapProject(data as unknown as Row);
+    },
+    async deleteProject(id: string): Promise<void> {
+      const { error } = await sb.from("projects").delete().eq("slug", id);
+      if (error) throw error;
     },
 
     // ---- Writes (Decisions) ----
@@ -427,6 +488,27 @@ async function projectUuid(sb: SupabaseClient, slug?: string): Promise<string | 
   if (!slug) return null;
   const { data } = await sb.from("projects").select("id").eq("slug", slug).maybeSingle();
   return (data?.id as string | undefined) ?? null;
+}
+
+async function productUuid(sb: SupabaseClient, slug?: string): Promise<string | null> {
+  if (!slug) return null;
+  const { data, error } = await sb.from("products").select("id").eq("slug", slug).maybeSingle();
+  if (error) throw error;
+  return (data?.id as string | undefined) ?? null;
+}
+
+function slugify(name: string, fallback: string): string {
+  return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || fallback;
+}
+
+async function uniqueSlugFor(sb: SupabaseClient, table: "products" | "projects", name: string, fallback: string): Promise<string> {
+  const base = slugify(name, fallback);
+  for (let suffix = 1; ; suffix += 1) {
+    const slug = suffix === 1 ? base : `${base}-${suffix}`;
+    const { data, error } = await sb.from(table).select("id").eq("slug", slug).maybeSingle();
+    if (error) throw error;
+    if (!data) return slug;
+  }
 }
 
 /** Resolve a milestone slug to its UUID (or null). */

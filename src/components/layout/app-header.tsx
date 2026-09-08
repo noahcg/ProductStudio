@@ -11,7 +11,7 @@ import { AttentionInbox } from "./attention-inbox";
 
 const NAV = [
   { href: "/", label: "Studio" },
-  { href: "/projects", label: "Projects" },
+  { href: "/projects", label: "Products" },
   { href: "/roadmaps", label: "Roadmaps" },
   { href: "/decisions", label: "Decisions" },
   { href: "/signals", label: "Signals" },
