@@ -17,12 +17,23 @@ import type {
   Integration,
   Expense,
   Domain,
+  SslStatus,
   SpendTrendPoint,
 } from "../domain";
 import { getSupabase } from "@/lib/supabase/server";
 import { localSource } from "./local-source";
 import { mockSource } from "./mock-source";
 import { supabaseSource } from "./supabase-source";
+
+export interface DomainMonitoringUpdate {
+  projectId: string;
+  name: string;
+  registrar: string;
+  expiresAt?: string;
+  autoRenew?: boolean;
+  sslStatus: SslStatus;
+  lastCheckedAt: string;
+}
 
 /**
  * Low-level data source: returns ready-mapped domain entities. Two
@@ -44,6 +55,7 @@ export interface DataSource {
   integrations(): Promise<Integration[]>;
   expenses(): Promise<Expense[]>;
   domains(): Promise<Domain[]>;
+  upsertDomainMonitoring(updates: DomainMonitoringUpdate[]): Promise<void>;
   spendTrend(): Promise<SpendTrendPoint[]>;
 
   // Writes (Projects / portfolio).

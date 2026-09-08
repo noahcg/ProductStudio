@@ -56,7 +56,7 @@ import { generateWeeklyReview } from "../review/engine";
 import type { WeeklyReview, StoredReview, ReviewPeriodKey } from "../review/types";
 import { buildAttentionInbox, type AttentionInbox } from "../attention/inbox";
 import { withSource, activeSource } from "./source";
-import type { DataSource } from "./source";
+import type { DataSource, DomainMonitoringUpdate } from "./source";
 import { alerts } from "./alerts";
 import { profile, weeklySummary } from "./profile";
 import { storedReviews } from "./reviews";
@@ -147,6 +147,11 @@ export async function getDomains(): Promise<Domain[]> {
 
 export async function getDomainsForProject(projectId: string): Promise<Domain[]> {
   return (await getDomains()).filter((d) => d.projectId === projectId);
+}
+
+/** Persist facts returned by a registrar or certificate monitor. */
+export async function upsertDomainMonitoring(updates: DomainMonitoringUpdate[]): Promise<void> {
+  await activeSource().upsertDomainMonitoring(updates);
 }
 
 /** Per-project worst domain health, for the Studio cards. */

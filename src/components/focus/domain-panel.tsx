@@ -3,6 +3,7 @@ import type { Domain, SslStatus } from "@/lib/domain";
 import { daysRemaining, domainHealth, type DomainHealth } from "@/lib/domains/monitor";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui";
+import { DomainCheckButton } from "./domain-check-button";
 
 const healthTone: Record<DomainHealth, string> = {
   Healthy: "text-success",
@@ -28,7 +29,7 @@ function expiryLabel(domain: Domain): string {
   return `Expires in ${days} day${days === 1 ? "" : "s"}`;
 }
 
-export function DomainPanel({ domains }: { domains: Domain[] }) {
+export function DomainPanel({ domains, projectId }: { domains: Domain[]; projectId: string }) {
   const health = domainHealth(domains);
   const checked = domains.every((d) => d.lastCheckedAt);
 
@@ -89,6 +90,7 @@ export function DomainPanel({ domains }: { domains: Domain[] }) {
           })}
         </ul>
       )}
+      <DomainCheckButton projectId={projectId} />
     </Card>
   );
 }

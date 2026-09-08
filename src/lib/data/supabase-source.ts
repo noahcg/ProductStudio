@@ -22,6 +22,7 @@ import type {
   SpendTrendPoint,
 } from "../domain";
 import type { DataSource } from "./source";
+import type { DomainMonitoringUpdate } from "./source";
 
 /**
  * Database-backed data source. Maps Supabase rows (Phase 2.3 schema) into the
@@ -260,6 +261,32 @@ export function supabaseSource(sb: SupabaseClient): DataSource {
     },
     async domains() {
       return (await rows("domains", "*, project:projects(slug)", { column: "name" })).map(mapDomain);
+    },
+    async upsertDomainMonitoring(updates: DomainMonitoringUpdate[]): Promise<void> {
+      for (const update of updates) {
+        const project_id = await projectUuid(sb, update.projectId);
+        if (!project_id) throw new Error(`Project ${update.projectId} was not found.`);
+        const payload = {
+          project_id,
+          name: update.name,
+          registrar: update.registrar,
+          expires_at: update.expiresAt ?? null,
+          auto_renew: update.autoRenew ?? null,
+          ssl_status: update.sslStatus,
+          last_checked_at: update.lastCheckedAt,
+          status: "healthy",
+        };
+        const { data: existing, error: lookupError } = await sb
+          .from("domains")
+          .select("id")
+          .eq("name", update.name)
+          .maybeSingle();
+        if (lookupError) throw lookupError;
+        const { error } = existing
+          ? await sb.from("domains").update(payload).eq("id", existing.id as string)
+          : await sb.from("domains").insert(payload);
+        if (error) throw error;
+      }
     },
 
     async spendTrend(): Promise<SpendTrendPoint[]> {

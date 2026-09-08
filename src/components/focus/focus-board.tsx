@@ -361,7 +361,7 @@ export function FocusBoard({
             {selectedHealth && <HealthSummary health={selectedHealth} />}
             <DeploymentPanel projectId={effectiveSelectedId} status={selectedDeployment} />
             <SupabasePanel projectId={effectiveSelectedId} status={selectedSupabase} />
-            <DomainPanel domains={selectedDomains} />
+            <DomainPanel domains={selectedDomains} projectId={effectiveSelectedId} />
           </div>
           </>}
         </div>

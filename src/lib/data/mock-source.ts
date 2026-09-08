@@ -14,6 +14,7 @@ import type {
 } from "../domain";
 import { now as studioNow } from "../clock";
 import type { DataSource } from "./source";
+import type { DomainMonitoringUpdate } from "./source";
 import { projects } from "./projects";
 import { products } from "./products";
 import { milestones } from "./milestones";
@@ -63,6 +64,26 @@ export const mockSource: DataSource = {
   },
   async domains() {
     return domains;
+  },
+  async upsertDomainMonitoring(updates: DomainMonitoringUpdate[]) {
+    for (const update of updates) {
+      const index = domains.findIndex(
+        (domain) => domain.projectId === update.projectId && domain.name.toLowerCase() === update.name.toLowerCase()
+      );
+      const value = {
+        id: index === -1 ? `domain-${update.projectId}-${update.name}` : domains[index].id,
+        projectId: update.projectId,
+        name: update.name,
+        registrar: update.registrar,
+        integration: "cloudflare" as const,
+        expiresAt: update.expiresAt,
+        autoRenew: update.autoRenew,
+        sslStatus: update.sslStatus,
+        lastCheckedAt: update.lastCheckedAt,
+      };
+      if (index === -1) domains.push(value);
+      else domains[index] = { ...domains[index], ...value };
+    }
   },
   async spendTrend() {
     return spendTrend;
