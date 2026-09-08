@@ -20,21 +20,28 @@ const ICONS: { value: ProjectIcon; label: string }[] = [
   { value: "sofa", label: "Lifestyle / Content" },
 ];
 
-export function ProjectForm({
-  open,
-  initial,
-  pending,
-  error,
-  onSubmit,
-  onClose,
-}: {
+type ProjectFormProps = {
   open: boolean;
   initial?: Project | null;
   pending: boolean;
   error?: string | null;
   onSubmit: (input: ProjectInput) => void;
   onClose: () => void;
-}) {
+};
+
+export function ProjectForm(props: ProjectFormProps) {
+  if (!props.open) return null;
+
+  return <ProjectFormFields key={props.initial?.id ?? "new"} {...props} />;
+}
+
+function ProjectFormFields({
+  initial,
+  pending,
+  error,
+  onSubmit,
+  onClose,
+}: ProjectFormProps) {
   const [name, setName] = useState(initial?.name ?? "");
   const [tagline, setTagline] = useState(initial?.tagline ?? "");
   const [status, setStatus] = useState<ProjectStatus>(initial?.status ?? "Active");
@@ -43,8 +50,6 @@ export function ProjectForm({
   const [icon, setIcon] = useState<ProjectIcon>(initial?.icon ?? "dumbbell");
   const [repo, setRepo] = useState(initial?.repo ?? "");
   const [domain, setDomain] = useState(initial?.domain ?? "");
-
-  if (!open) return null;
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -137,4 +142,3 @@ export function ProjectForm({
     </div>
   );
 }
-

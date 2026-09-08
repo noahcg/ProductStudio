@@ -1,3 +1,4 @@
+import { validateSchedule } from "@/lib/tasks/schedule";
 import { revalidatePath } from "next/cache";
 import type { TaskInput, TaskSource, TaskStatus } from "@/lib/domain";
 import { createTask } from "@/lib/data";
@@ -11,6 +12,8 @@ type RawTask = {
   description?: unknown;
   status?: unknown;
   source?: unknown;
+  scheduledDate?: unknown;
+  scheduledTime?: unknown;
 };
 
 export async function POST(request: Request) {
@@ -74,7 +77,12 @@ function normalizeTask(raw: RawTask): TaskInput | { error: string } {
   if (!projectId) return { error: "projectId is required." };
   if (!title) return { error: "title is required." };
 
+  const scheduleError = validateSchedule(raw.scheduledDate, raw.scheduledTime);
+  if (scheduleError) return { error: scheduleError };
+
   return {
+    scheduledDate: stringValue(raw.scheduledDate) || undefined,
+    scheduledTime: stringValue(raw.scheduledTime) || undefined,
     projectId,
     milestoneId: stringValue(raw.milestoneId) || undefined,
     title,

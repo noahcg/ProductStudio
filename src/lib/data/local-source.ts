@@ -144,6 +144,8 @@ function fromTaskInput(input: TaskInput): Omit<Task, "id"> {
     title: input.title,
     description: input.description?.trim() || undefined,
     status: input.status,
+    scheduledDate: input.scheduledDate || undefined,
+    scheduledTime: input.scheduledDate ? input.scheduledTime || undefined : undefined,
     createdAt: studioNow().toISOString(),
     completedAt,
     source: normalizeTaskSource(input),

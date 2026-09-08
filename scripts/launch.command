@@ -3,7 +3,7 @@
 # Product Studio — local launcher.
 #
 # Boots the app as a local server on your machine (no hosting / no cloud) and
-# opens it in your browser. Runs in mock mode by default, so it needs nothing
+# opens it in your browser. Saves data locally by default, so it needs nothing
 # but Node.js. Keep this window open while using the app; press Ctrl-C or close
 # it to stop the server.
 #
@@ -41,9 +41,9 @@ if curl -fsS "$URL" -o /dev/null 2>/dev/null; then
   exit 0
 fi
 
-# Build once on first run (or after you delete .next to force a refresh).
-if [ ! -d ".next" ]; then
-  echo "First run — building Product Studio (one-time, ~30s)…"
+# Refresh the production build when app files have changed since the last build.
+if [ ! -f ".next/BUILD_ID" ] || [ -n "$(find src public scripts package.json package-lock.json next.config.ts tsconfig.json postcss.config.mjs -type f -newer .next/BUILD_ID -print -quit)" ]; then
+  echo "Building the latest Product Studio…"
   npm run build || { echo "Build failed."; read -r -n1 -p "Press any key to close…"; exit 1; }
 fi
 

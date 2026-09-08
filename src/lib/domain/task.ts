@@ -22,6 +22,8 @@ export interface Task {
   title: string;
   description?: string;
   status: TaskStatus;
+  scheduledDate?: string;
+  scheduledTime?: string;
   createdAt: string;
   completedAt?: string;
   source?: TaskSource;
@@ -34,5 +36,7 @@ export interface TaskInput {
   title: string;
   description?: string;
   status: TaskStatus;
+  scheduledDate?: string;
+  scheduledTime?: string;
   source?: TaskSource;
 }

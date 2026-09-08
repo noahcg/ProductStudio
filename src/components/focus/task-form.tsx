@@ -11,29 +11,30 @@ const STATUSES: { value: TaskStatus; label: string }[] = [
   { value: "completed", label: "Done" },
 ];
 
-export function TaskForm({
-  open,
-  initial,
-  milestoneTitle,
-  pending,
-  error,
-  onSubmit,
-  onClose,
-}: {
+type TaskFormProps = {
   open: boolean;
   initial?: Task | null;
+  initialDate?: string;
   milestoneTitle?: string;
   pending: boolean;
   error?: string | null;
   onSubmit: (fields: Omit<TaskInput, "projectId" | "milestoneId">) => void;
   onClose: () => void;
-}) {
+};
+
+export function TaskForm(props: TaskFormProps) {
+  if (!props.open) return null;
+  return <TaskFormFields key={props.initial?.id ?? "new"} {...props} />;
+}
+
+function TaskFormFields({ initial, initialDate, milestoneTitle, pending, error, onSubmit, onClose }: TaskFormProps) {
   const [title, setTitle] = useState(initial?.title ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [status, setStatus] = useState<TaskStatus>(initial?.status ?? "todo");
   const [sourceLabel, setSourceLabel] = useState(initial?.source?.label ?? "");
 
-  if (!open) return null;
+  const [scheduledDate, setScheduledDate] = useState(initial?.scheduledDate ?? initialDate ?? "");
+  const [scheduledTime, setScheduledTime] = useState(initial?.scheduledTime ?? "");
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -41,7 +42,9 @@ export function TaskForm({
       title,
       description,
       status,
-      source: sourceLabel.trim() ? { label: sourceLabel.trim(), type: "manual" } : undefined,
+      scheduledDate: scheduledDate || undefined,
+      scheduledTime: scheduledDate ? scheduledTime || undefined : undefined,
+      source: sourceLabel.trim() ? { ...initial?.source, label: sourceLabel.trim(), type: initial?.source?.type ?? "manual" } : undefined,
     });
   }
 
@@ -84,6 +87,19 @@ export function TaskForm({
             <Field label="Source">
               <Input value={sourceLabel} onChange={(e) => setSourceLabel(e.target.value)} placeholder="Optional note or meeting" />
             </Field>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Scheduled date">
+              <Input type="date" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} />
+            </Field>
+            <Field label="Time (optional)">
+              <Input type="time" value={scheduledTime} disabled={!scheduledDate} onChange={(e) => setScheduledTime(e.target.value)} />
+            </Field>
+          </div>
+          <div className="flex items-center justify-between text-xs text-muted">
+            <span>{scheduledDate ? "Uses your local date and time. No time means all day." : "Leave the date empty to keep this task unscheduled."}</span>
+            {scheduledDate && <Button type="button" variant="ghost" onClick={() => { setScheduledDate(""); setScheduledTime(""); }}>Clear schedule</Button>}
           </div>
 
           {error && <p className="text-sm text-danger">{error}</p>}

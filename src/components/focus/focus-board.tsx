@@ -23,6 +23,7 @@ import { ProgressRing } from "@/components/donut";
 import { projectIcons } from "@/components/icons";
 import { MeetingNotes } from "@/components/studio/meeting-notes";
 import { ProjectForm } from "@/components/projects/project-form";
+import { TaskCalendar } from "./task-calendar";
 import { TaskForm } from "./task-form";
 import { HealthSummary } from "./health-summary";
 import { DomainPanel } from "./domain-panel";
@@ -45,7 +46,7 @@ type OptimisticAction =
   | { type: "update"; task: Task }
   | { type: "remove"; id: string };
 
-type TaskModal = { mode: "closed" } | { mode: "new" } | { mode: "edit"; task: Task };
+type TaskModal = { mode: "closed" } | { mode: "new"; date?: string } | { mode: "edit"; task: Task };
 type ProjectModal = { mode: "closed" } | { mode: "new" } | { mode: "edit"; project: Project };
 
 export function FocusBoard({
@@ -93,8 +94,8 @@ export function FocusBoard({
   const milestone =
     milestones.find((m) => m.projectId === effectiveSelectedId && m.status === "active") ??
     milestones.find((m) => m.projectId === effectiveSelectedId);
-  const milestoneTasks = milestone ? optimistic.filter((t) => t.milestoneId === milestone.id) : [];
-  const stats = taskStats(milestoneTasks);
+  const projectTasks = optimistic.filter((t) => t.projectId === effectiveSelectedId);
+  const stats = taskStats(projectTasks);
   const selectedHealth = health.find((h) => h.project.id === effectiveSelectedId);
   const selectedDomains = domains.filter((d) => d.projectId === effectiveSelectedId);
   const selectedDeployment = vercel[effectiveSelectedId];
@@ -109,8 +110,12 @@ export function FocusBoard({
   function submitTask(fields: Omit<TaskInput, "projectId" | "milestoneId">) {
     if (!project) return;
     setError(null);
-    const input: TaskInput = { projectId: project.id, milestoneId: milestone?.id, ...fields };
     const editing = taskModal.mode === "edit" ? taskModal.task : null;
+    const input: TaskInput = {
+      projectId: editing?.projectId ?? project.id,
+      milestoneId: editing ? editing.milestoneId : milestone?.id,
+      ...fields,
+    };
     startTransition(async () => {
       if (editing) {
         applyOptimistic({ type: "update", task: { ...editing, ...input } });
@@ -236,7 +241,7 @@ export function FocusBoard({
                 </Button>
               </div>
 
-              {milestoneTasks.length > 0 ? (
+              {projectTasks.length > 0 ? (
                 <>
                   <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
                     <span className="font-medium text-fg">
@@ -246,7 +251,7 @@ export function FocusBoard({
                   </div>
 
                   <ul className="mt-3 space-y-1.5">
-                    {milestoneTasks.map((task) => (
+                    {projectTasks.map((task) => (
                       <TaskRow
                         key={task.id}
                         task={task}
@@ -264,9 +269,7 @@ export function FocusBoard({
                 </>
               ) : (
                 <div className="mt-4 rounded-xl border border-dashed border-line p-8 text-center text-sm text-muted">
-                  {milestone
-                    ? "No tasks for this milestone yet."
-                    : "No tasks for this project yet."}
+                  No tasks for this project yet.
                   <div className="mt-3">
                     <Button variant="primary" onClick={() => setTaskModal({ mode: "new" })}>
                       <Plus className="h-4 w-4" /> Add task
@@ -277,6 +280,9 @@ export function FocusBoard({
               {error && <p className="mt-3 text-sm text-danger">{error}</p>}
             </Card>
 
+            <TaskCalendar tasks={optimistic} projects={localProjects} projectId={effectiveSelectedId}
+              onEdit={(task) => { setError(null); setTaskModal({ mode: "edit", task }); }}
+              onAdd={(date) => { setError(null); setTaskModal({ mode: "new", date }); }} />
             <MeetingNotes projects={localProjects} projectId={project.id} />
           </div>
 
@@ -319,7 +325,8 @@ export function FocusBoard({
       <TaskForm
         open={taskModal.mode !== "closed"}
         initial={taskModal.mode === "edit" ? taskModal.task : null}
-        milestoneTitle={milestone ? `${project?.name} — ${milestone.title}` : project?.name}
+        initialDate={taskModal.mode === "new" ? taskModal.date : undefined}
+        milestoneTitle={taskModal.mode === "edit" ? localProjects.find((p) => p.id === taskModal.task.projectId)?.name : milestone ? `${project?.name} — ${milestone.title}` : project?.name}
         pending={pending}
         error={error}
         onSubmit={submitTask}
@@ -470,6 +477,7 @@ function TaskRow({
 
       <span className={cn("min-w-0 flex-1 text-sm", done ? "text-muted line-through" : "text-fg")}>
         {task.title}
+        {task.scheduledDate && <span className="mt-0.5 block text-xs text-muted">{task.scheduledDate}{task.scheduledTime ? ` · ${task.scheduledTime}` : " · All day"}</span>}
         {task.source?.label && (
           <span className="mt-0.5 block truncate text-xs text-faint">{task.source.label}</span>
         )}

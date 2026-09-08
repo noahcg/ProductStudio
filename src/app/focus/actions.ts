@@ -1,5 +1,6 @@
 "use server";
 
+import { validateSchedule } from "@/lib/tasks/schedule";
 import { revalidatePath } from "next/cache";
 import type { TaskInput, TaskStatus } from "@/lib/domain";
 import { createTask, updateTask, deleteTask, setTaskStatus } from "@/lib/data";
@@ -9,7 +10,7 @@ export type ActionResult = { ok: true } | { ok: false; error: string };
 function validate(input: TaskInput): string | null {
   if (!input.projectId) return "A project is required.";
   if (!input.title?.trim()) return "Title is required.";
-  return null;
+  return validateSchedule(input.scheduledDate, input.scheduledTime);
 }
 
 export async function createTaskAction(input: TaskInput): Promise<ActionResult> {
