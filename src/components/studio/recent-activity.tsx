@@ -17,8 +17,11 @@ export async function RecentActivity() {
           </LinkButton>
         }
       />
-      <ul className="px-5 py-3">
-        {activity.slice(0, 6).map((item) => {
+      {activity.length === 0 ? (
+        <p className="px-5 py-8 text-center text-sm text-muted">No activity logged yet.</p>
+      ) : (
+        <ul className="px-5 py-3">
+          {activity.slice(0, 6).map((item) => {
           const Icon = activityIcons[item.kind];
           const project = item.projectId ? projectMap.get(item.projectId) : undefined;
           return (
@@ -39,8 +42,9 @@ export async function RecentActivity() {
               </div>
             </li>
           );
-        })}
-      </ul>
+          })}
+        </ul>
+      )}
     </Card>
   );
 }

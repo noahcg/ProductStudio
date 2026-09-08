@@ -225,6 +225,62 @@ html.light .page-heading-subtitle {
     0 0 14px rgba(247, 250, 248, 0.56);
 }
 
+/*
+  Greeting contrast treatment. The atmosphere can put the greeting over a
+  bright window, foliage, or a dark wall, so the text carries its own thin
+  halo rather than relying on a backing panel. The inner stroke remains close
+  to the page's surface color, while the soft outer shadow separates the
+  letterforms from busy image detail.
+*/
+.greeting-title,
+.greeting-subtitle {
+  paint-order: stroke fill;
+}
+
+.greeting-title {
+  -webkit-text-stroke: 1px rgba(3, 8, 20, 0.88);
+  text-shadow:
+    -1px -1px 0 rgba(3, 8, 20, 0.88),
+    1px -1px 0 rgba(3, 8, 20, 0.88),
+    -1px 1px 0 rgba(3, 8, 20, 0.88),
+    1px 1px 0 rgba(3, 8, 20, 0.88),
+    0 3px 14px rgba(0, 0, 0, 0.48),
+    0 0 22px rgba(0, 0, 0, 0.38);
+}
+
+.greeting-subtitle {
+  -webkit-text-stroke: 0.6px rgba(3, 8, 20, 0.82);
+  text-shadow:
+    -0.75px -0.75px 0 rgba(3, 8, 20, 0.82),
+    0.75px -0.75px 0 rgba(3, 8, 20, 0.82),
+    -0.75px 0.75px 0 rgba(3, 8, 20, 0.82),
+    0.75px 0.75px 0 rgba(3, 8, 20, 0.82),
+    0 2px 9px rgba(0, 0, 0, 0.48);
+}
+
+/* In light mode, a pale keyline preserves the dark text over foliage and
+   window frames, while the text itself stays naturally strong over clouds. */
+html.light .greeting-title {
+  -webkit-text-stroke-color: rgba(250, 253, 255, 0.84);
+  text-shadow:
+    -1px -1px 0 rgba(250, 253, 255, 0.84),
+    1px -1px 0 rgba(250, 253, 255, 0.84),
+    -1px 1px 0 rgba(250, 253, 255, 0.84),
+    1px 1px 0 rgba(250, 253, 255, 0.84),
+    0 3px 14px rgba(7, 19, 38, 0.36),
+    0 0 22px rgba(250, 253, 255, 0.52);
+}
+
+html.light .greeting-subtitle {
+  -webkit-text-stroke-color: rgba(250, 253, 255, 0.8);
+  text-shadow:
+    -0.75px -0.75px 0 rgba(250, 253, 255, 0.8),
+    0.75px -0.75px 0 rgba(250, 253, 255, 0.8),
+    -0.75px 0.75px 0 rgba(250, 253, 255, 0.8),
+    0.75px 0.75px 0 rgba(250, 253, 255, 0.8),
+    0 2px 9px rgba(7, 19, 38, 0.36);
+}
+
 /* Mobile: drop the (expensive) heavy header blur; the image stays visible. */
 @media (max-width: 640px) {
   html.dark .atmosphere::after {

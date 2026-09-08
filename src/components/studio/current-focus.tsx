@@ -6,8 +6,32 @@ import { cn } from "@/lib/utils";
 
 export async function CurrentFocus() {
   const focus = await getFocus();
-  const remaining = focus.tasks.filter((t) => t.status !== "completed").length;
   const [project, milestone] = focus.title.split(" — ");
+  const hasMilestone = Boolean(focus.projectId && milestone);
+
+  if (!hasMilestone) {
+    return (
+      <Card className="flex h-full flex-col p-5">
+        <h2 className="text-[15px] font-semibold tracking-tight text-fg">Current Focus</h2>
+        <div className="flex flex-1 flex-col justify-center py-6">
+          <Badge tone="neutral" className="mb-3 w-fit">Ready to plan</Badge>
+          <h3 className="text-xl font-bold leading-tight text-fg">
+            {focus.projectId ? `${project} needs a current goal.` : "Choose a project to focus on."}
+          </h3>
+          <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted">
+            Set a goal for Home Cooked, then add the next concrete task you want to complete.
+          </p>
+        </div>
+        <div className="mt-auto flex justify-end border-t border-line pt-5">
+          <LinkButton href={focus.projectId ? `/projects?project=${focus.projectId}` : "/projects"} variant="primary">
+            Open Home Cooked <ArrowRight className="h-4 w-4" />
+          </LinkButton>
+        </div>
+      </Card>
+    );
+  }
+
+  const remaining = focus.tasks.filter((t) => t.status !== "completed").length;
 
   return (
     <Card className="flex h-full flex-col p-5">

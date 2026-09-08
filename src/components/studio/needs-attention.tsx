@@ -20,7 +20,9 @@ export async function NeedsAttention() {
         }
       />
       <div className="space-y-3 p-5 pt-4">
-        {alerts.map((alert) => {
+        {alerts.length === 0 ? (
+          <p className="py-4 text-center text-sm text-muted">Nothing needs attention right now.</p>
+        ) : alerts.map((alert) => {
           const project = alert.projectId ? projectMap.get(alert.projectId) : undefined;
           const Icon = project ? projectIcons[project.icon] : Globe;
           const accent = project ? accentStyles[project.accent] : null;

@@ -53,11 +53,15 @@ export default async function StudioPage() {
         <div className="flex items-center gap-3">
           <Star className="h-5 w-5 shrink-0 fill-warning/20 text-warning" />
           <p className="text-sm leading-relaxed text-fg">
-            You shipped <strong>{weekly.updates} updates</strong> across {weekly.products} products this week. Keep the momentum going.
+            {weekly.updates > 0 ? (
+              <>You shipped <strong>{weekly.updates} updates</strong> across {weekly.products} products this week. Keep the momentum going.</>
+            ) : (
+              <>No updates logged this week. Start with the next task for <strong>Home Cooked</strong>.</>
+            )}
           </p>
         </div>
-        <LinkButton href="/roadmaps" variant="subtle" className="text-sm">
-          Weekly Summary <ArrowRight className="h-3.5 w-3.5" />
+        <LinkButton href={weekly.updates > 0 ? "/roadmaps" : "/projects?project=home-cooked"} variant="subtle" className="text-sm">
+          {weekly.updates > 0 ? "Weekly Summary" : "Open Home Cooked"} <ArrowRight className="h-3.5 w-3.5" />
         </LinkButton>
       </div>
     </div>

@@ -23,9 +23,7 @@ const NAV = [
  * Live wall clock for the header. Renders nothing until mounted so the
  * server/client markup matches, then ticks once a minute.
  *
- * Note: this is real time, deliberately independent of the studio data anchor
- * in `lib/clock.ts` (which keeps the mock "2d ago" labels stable). The header
- * shows "now"; the dashboard data is demo data fixed to June 2026.
+ * The rest of the studio uses the same live clock for activity and review data.
  */
 let currentClock = new Date();
 const getClockSnapshot = () => currentClock;

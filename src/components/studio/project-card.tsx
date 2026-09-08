@@ -147,7 +147,7 @@ export function ProjectCard({
             label={project.blockers === 1 ? "Blocker" : "Blockers"}
             warn={project.blockers > 0}
           />
-          <Stat value={relativeTime(project.lastActivityIso)} label="Last activity" small />
+          <Stat value={project.lastActivityIso ? relativeTime(project.lastActivityIso) : "—"} label="Last activity" small />
         </div>
       </div>
     </Link>

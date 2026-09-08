@@ -18,22 +18,20 @@ export const SUPABASE_PROJECT_MAP: Record<string, string[]> = {
   "home-cooked": ["home-cooked-db"],
   "wardrobe-harmony": ["wardrobe-harmony-db"],
   "personal-trainer": ["personal-trainer-db"],
-  "cascade-lounge": ["cascade-lounge-db"],
 };
 
-export type SupabaseMode = "live" | "mock" | "off";
+export type SupabaseMode = "live" | "off";
 
 /**
  * Resolve the Supabase monitoring mode:
- *  - `SUPABASE_MONITOR_MODE` env wins if set (live | mock | off)
+ *  - `SUPABASE_MONITOR_MODE` env wins if set (live | off)
  *  - else `live` when a `SUPABASE_ACCESS_TOKEN` is present
- *  - else `mock` (deterministic dev/demo data so the integration is usable
- *    without a token; never real data)
+ *  - else `off` so no operational data is invented before the integration is connected
  */
 export function supabaseMode(): SupabaseMode {
   const explicit = process.env.SUPABASE_MONITOR_MODE as SupabaseMode | undefined;
-  if (explicit === "live" || explicit === "mock" || explicit === "off") return explicit;
-  return process.env.SUPABASE_ACCESS_TOKEN ? "live" : "mock";
+  if (explicit === "live" || explicit === "off") return explicit;
+  return process.env.SUPABASE_ACCESS_TOKEN ? "live" : "off";
 }
 
 export function supabaseToken(): string | undefined {

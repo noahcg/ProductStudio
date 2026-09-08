@@ -4,7 +4,7 @@ import type { GeneratedSignal } from "@/lib/signals/engine";
 /**
  * Normalized Supabase usage metadata (metadata only — no table contents, no user
  * data, no passwords, no secrets, no customer information). Produced by the live
- * client or the mock provider.
+ * client.
  */
 export type SupabaseProjectState = "healthy" | "degraded" | "unavailable" | "unknown";
 
@@ -52,7 +52,7 @@ export interface SupabaseProjectStatus {
 
 /** What the Supabase provider returns to the data pipeline. */
 export interface SupabaseResult {
-  mode: "live" | "mock" | "off";
+  mode: "live" | "off";
   /** Supabase-sourced activity merged into the feed (integration = "supabase"). */
   events: Activity[];
   /** Supabase-derived operational signals merged into the Signals Engine output. */

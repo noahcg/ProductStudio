@@ -216,12 +216,16 @@ export function FocusBoard({
                   </div>
                   <h2 className="text-2xl font-bold tracking-tight text-fg">{project.name}</h2>
                   <p className="mt-1 text-lg font-semibold text-fg">
-                    {milestone?.title ?? project.nextMilestone}
+                    {(milestone?.title ?? project.nextMilestone) || "No current goal"}
                   </p>
                   {milestone?.summary && <p className="mt-1 max-w-lg text-sm text-muted">{milestone.summary}</p>}
                 </div>
-                {milestone && (
+                {milestone ? (
                   <ProgressRing value={milestone.progress} size={104} color="var(--success)" />
+                ) : (
+                  <Button variant="primary" onClick={() => setProjectModal({ mode: "edit", project })}>
+                    Set current goal
+                  </Button>
                 )}
               </div>
 
@@ -284,7 +288,7 @@ export function FocusBoard({
               </div>
               <dl className="mt-4 space-y-2.5 text-xs">
                 <Row label="Status">{project.status}</Row>
-                <Row label="Current goal">{project.nextMilestone}</Row>
+                <Row label="Current goal">{project.nextMilestone || "Not set yet"}</Row>
                 <Row label="Repo">{project.repo ?? "Not connected"}</Row>
                 <Row label="Domain">{project.domain ?? "Not set"}</Row>
               </dl>

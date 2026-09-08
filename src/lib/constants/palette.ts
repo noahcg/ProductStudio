@@ -3,7 +3,7 @@
  * (SVG fills, inline progress-bar backgrounds, donut segments).
  *
  * Consolidates colors that were previously duplicated across `icons.tsx`
- * and the spend mock data (CURRENT_STATE §10). The CSS theme tokens in
+ * and the spend category palette. The CSS theme tokens in
  * `globals.css` remain the source for class-based colors — these constants
  * cover only the values that must be passed as inline `style` strings.
  */

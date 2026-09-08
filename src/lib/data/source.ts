@@ -24,8 +24,8 @@ import { supabaseSource } from "./supabase-source";
 
 /**
  * Low-level data source: returns ready-mapped domain entities. Two
- * implementations — `localSource` (persistent JSON), `mockSource` (fixtures),
- * and `supabaseSource` (database). The public repository in `index.ts`
+ * implementations — `localSource` (persistent JSON), `mockSource` (an
+ * in-memory development store), and `supabaseSource` (database). The public repository in `index.ts`
  * composes/derives everything else (focus view, spend aggregates, studio stats)
  * on top of these.
  */
@@ -78,7 +78,7 @@ export function activeSource(): DataSource {
 }
 
 /**
- * Run a computation against the active source, gracefully falling back to mock
+ * Run a computation against the active source, gracefully falling back to local
  * if a database call fails (misconfig, network, unseeded). This keeps the UI
  * rendering rather than throwing.
  */

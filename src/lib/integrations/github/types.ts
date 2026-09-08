@@ -3,7 +3,7 @@ import type { GeneratedSignal } from "@/lib/signals/engine";
 
 /**
  * Normalized GitHub data per repository (metadata only — no source code, no
- * commit contents). Produced by the live client or the mock provider.
+ * commit contents). Produced by the live client.
  */
 export interface RepoSnapshot {
   repo: string; // "owner/name"
@@ -33,7 +33,7 @@ export interface GitHubProjectStatus {
 
 /** What the GitHub provider returns to the data pipeline. */
 export interface GitHubResult {
-  mode: "live" | "mock" | "off";
+  mode: "live" | "off";
   /** GitHub-sourced activity merged into the feed (integration = "github"). */
   events: Activity[];
   /** GitHub-derived operational signals merged into the Signals Engine output. */

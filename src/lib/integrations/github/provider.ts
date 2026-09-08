@@ -3,7 +3,6 @@ import type { Activity, Project } from "@/lib/domain";
 import type { GeneratedSignal } from "@/lib/signals/engine";
 import { now as studioNow } from "@/lib/clock";
 import { githubMode, reposForProject, GITHUB_THRESHOLDS } from "./config";
-import { mockRepoSnapshot } from "./mock";
 import { liveRepoSnapshot } from "./client";
 import type { RepoSnapshot, GitHubProjectStatus, GitHubResult } from "./types";
 
@@ -22,7 +21,7 @@ function statusLabel(s: { connected: boolean; error?: boolean; idle: number; ope
 }
 
 /**
- * The GitHub provider — fetches repo activity (live or mock), maps it into
+ * The GitHub provider — fetches live repo activity when connected, maps it into
  * Product Studio's activity feed + signals, and derives a per-project status.
  * GitHub never owns domain data; this only augments activity/signals/health.
  *
@@ -60,7 +59,7 @@ export const getGitHub = cache(async (projects: Project[]): Promise<GitHubResult
     }
 
     const snapshots: RepoSnapshot[] = await Promise.all(
-      repos.map((r) => (mode === "live" ? liveRepoSnapshot(r) : Promise.resolve(mockRepoSnapshot(r))))
+      repos.map((r) => liveRepoSnapshot(r))
     );
 
     const errored = snapshots.filter((s) => s.error);

@@ -40,7 +40,7 @@ export async function MorningProjects() {
             key={project.id}
             project={project}
             tasks={tasksForProject(tasks, project.id)}
-            milestoneTitle={milestoneByProject.get(project.id)?.title ?? project.nextMilestone}
+            milestoneTitle={(milestoneByProject.get(project.id)?.title ?? project.nextMilestone) || "No current goal"}
             health={healthById.get(project.id)}
           />
         ))}

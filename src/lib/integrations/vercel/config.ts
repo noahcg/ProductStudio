@@ -14,22 +14,20 @@ export const VERCEL_PROJECT_MAP: Record<string, string[]> = {
   "home-cooked": ["home-cooked-production"],
   "wardrobe-harmony": ["wardrobe-harmony-production"],
   "personal-trainer": ["personal-trainer-production"],
-  "cascade-lounge": ["cascade-lounge-production"],
 };
 
-export type VercelMode = "live" | "mock" | "off";
+export type VercelMode = "live" | "off";
 
 /**
  * Resolve the Vercel mode:
- *  - `VERCEL_MODE` env wins if set (live | mock | off)
+ *  - `VERCEL_MODE` env wins if set (live | off)
  *  - else `live` when a `VERCEL_ACCESS_TOKEN` is present
- *  - else `mock` (deterministic dev/demo data so the integration is usable
- *    without a token; never real data)
+ *  - else `off` so no deployment data is invented before the integration is connected
  */
 export function vercelMode(): VercelMode {
   const explicit = process.env.VERCEL_MODE as VercelMode | undefined;
-  if (explicit === "live" || explicit === "mock" || explicit === "off") return explicit;
-  return process.env.VERCEL_ACCESS_TOKEN ? "live" : "mock";
+  if (explicit === "live" || explicit === "off") return explicit;
+  return process.env.VERCEL_ACCESS_TOKEN ? "live" : "off";
 }
 
 export function vercelToken(): string | undefined {

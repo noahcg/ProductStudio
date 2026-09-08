@@ -9,6 +9,6 @@ export const profile: Profile = {
 
 /** Studio footer banner figures. */
 export const weeklySummary: WeeklySummary = {
-  updates: 3,
-  products: 2,
+  updates: 0,
+  products: 0,
 };

@@ -279,6 +279,16 @@ export const localSource: DataSource = {
       if (milestone) {
         milestone.title = input.nextMilestone;
         milestone.summary = milestone.summary || `Drive ${input.name} toward the "${input.nextMilestone}" milestone.`;
+      } else {
+        store.milestones.push({
+          id: uniqueSlug(`m-${id}`, store.milestones),
+          projectId: id,
+          title: input.nextMilestone,
+          summary: "",
+          priority: "Medium",
+          progress: 0,
+          status: "active",
+        });
       }
       return updated;
     });

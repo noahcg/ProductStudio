@@ -146,8 +146,8 @@ export function computeSignals(input: SignalsInput, now: Date = studioNow()): Ge
       ? pTasks.filter((t) => t.milestoneId === activeMilestone.id)
       : [];
     // --- Project Momentum (uses the canonical last-activity snapshot) ---
-    const idle = daysSince(p.lastActivityIso, now);
-    if (idle >= TH.dormantDays) {
+    const idle = p.lastActivityIso ? daysSince(p.lastActivityIso, now) : undefined;
+    if (idle != null && idle >= TH.dormantDays) {
       sig(
         "project_dormant",
         "critical",
@@ -157,7 +157,7 @@ export function computeSignals(input: SignalsInput, now: Date = studioNow()): Ge
         "Decide whether to revive, pause, or archive this project.",
         { idleDays: idle }
       );
-    } else if (idle >= TH.inactivityDays) {
+    } else if (idle != null && idle >= TH.inactivityDays) {
       sig(
         "project_inactivity",
         "warning",

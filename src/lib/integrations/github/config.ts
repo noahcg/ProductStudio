@@ -11,22 +11,20 @@ export const REPO_MAP: Record<string, string[]> = {
   "home-cooked": ["noahg/home-cooked"],
   "wardrobe-harmony": ["noahg/wardrobe-harmony"],
   "personal-trainer": ["noahg/personal-trainer"],
-  "cascade-lounge": ["noahg/cascade-lounge"],
 };
 
-export type GitHubMode = "live" | "mock" | "off";
+export type GitHubMode = "live" | "off";
 
 /**
  * Resolve the GitHub mode:
- *  - `GITHUB_MODE` env wins if set (live | mock | off)
+ *  - `GITHUB_MODE` env wins if set (live | off)
  *  - else `live` when a `GITHUB_TOKEN` is present
- *  - else `mock` (deterministic dev/demo data so the integration is usable
- *    without a token; never real data)
+ *  - else `off` so no activity is invented before the integration is connected
  */
 export function githubMode(): GitHubMode {
   const explicit = process.env.GITHUB_MODE as GitHubMode | undefined;
-  if (explicit === "live" || explicit === "mock" || explicit === "off") return explicit;
-  return process.env.GITHUB_TOKEN ? "live" : "mock";
+  if (explicit === "live" || explicit === "off") return explicit;
+  return process.env.GITHUB_TOKEN ? "live" : "off";
 }
 
 export function githubToken(): string | undefined {

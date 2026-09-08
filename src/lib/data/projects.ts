@@ -1,63 +1,23 @@
 import type { Project } from "../domain";
 
-/** Mock portfolio. Phase 2.1: extracted from the former monolithic data.ts. */
+/**
+ * The clean starting workspace. Product Studio begins with the one active
+ * product and no invented progress, activity, or planning data.
+ */
 export const projects: Project[] = [
   {
     id: "home-cooked",
     name: "Home Cooked",
     tagline: "Cookbook Platform",
     status: "Active",
-    progress: 83,
-    nextMilestone: "Family Sharing MVP",
-    openTasks: 3,
-    blockers: 1,
-    lastActivityIso: "2026-06-05T16:20:00",
+    progress: 0,
+    nextMilestone: "",
+    openTasks: 0,
+    blockers: 0,
+    lastActivityIso: "",
     accent: "amber",
     icon: "chef",
     repo: "noahg/home-cooked",
     domain: "tryhomecooked.com",
-  },
-  {
-    id: "wardrobe-harmony",
-    name: "WardrobeHarmony",
-    tagline: "Colorblind Closet",
-    status: "Active",
-    progress: 48,
-    nextMilestone: "Closet Import",
-    openTasks: 5,
-    blockers: 0,
-    lastActivityIso: "2026-05-24T11:00:00",
-    accent: "violet",
-    icon: "shirt",
-    repo: "noahg/wardrobe-harmony",
-    domain: "wardrobeharmony.com",
-  },
-  {
-    id: "personal-trainer",
-    name: "PersonalTrainer",
-    tagline: "Trainer Management",
-    status: "Planning",
-    progress: 21,
-    nextMilestone: "Client Scheduling",
-    openTasks: 4,
-    blockers: 0,
-    lastActivityIso: "2026-05-09T09:30:00",
-    accent: "blue",
-    icon: "dumbbell",
-    repo: "noahg/personal-trainer",
-  },
-  {
-    id: "cascade-lounge",
-    name: "Cascade Lounge",
-    tagline: "Lifestyle & Content",
-    status: "Content",
-    progress: 35,
-    nextMilestone: "Spring Content Drop",
-    openTasks: 2,
-    blockers: 0,
-    lastActivityIso: "2026-05-31T18:00:00",
-    accent: "orange",
-    icon: "sofa",
-    domain: "cascadelounge.co",
   },
 ];

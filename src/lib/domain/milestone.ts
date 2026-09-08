@@ -5,7 +5,7 @@ export type MilestonePriority = "High" | "Medium" | "Low";
 export type MilestoneStatus = "active" | "planned" | "shipped";
 
 /**
- * A Milestone is a project's meaningful deliverable ("Family Sharing MVP").
+ * A Milestone is a project's meaningful deliverable.
  * Owned by exactly one project. Tasks belong to a milestone; the Studio's
  * "Current Focus" is a project's active milestone plus its tasks.
  */

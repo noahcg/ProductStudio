@@ -4,7 +4,7 @@ import type { GeneratedSignal } from "@/lib/signals/engine";
 /**
  * Normalized Vercel deployment metadata (metadata only — no source code, no
  * build logs, no environment variable values, no secrets). Produced by the live
- * client or the mock provider.
+ * client.
  */
 export type DeploymentState = "ready" | "building" | "queued" | "canceled" | "failed" | "unknown";
 
@@ -60,7 +60,7 @@ export interface VercelProjectStatus {
 
 /** What the Vercel provider returns to the data pipeline. */
 export interface VercelResult {
-  mode: "live" | "mock" | "off";
+  mode: "live" | "off";
   /** Vercel-sourced activity merged into the feed (integration = "vercel"). */
   events: Activity[];
   /** Vercel-derived operational signals merged into the Signals Engine output. */

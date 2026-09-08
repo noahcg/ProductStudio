@@ -25,8 +25,7 @@ import { expenses, spendTrend } from "./spend";
 import { domains } from "./domains";
 
 /**
- * Mock data source — the local typed fixtures from Phase 2.1/2.2. Used as the
- * development fixture and as the fallback when Supabase isn't available.
+ * In-memory data source used only when DATA_SOURCE=mock is explicitly set.
  */
 export const mockSource: DataSource = {
   kind: "mock",
@@ -111,7 +110,19 @@ export const mockSource: DataSource = {
     };
     projects[i] = updated;
     const milestone = milestones.find((m) => m.projectId === id && m.status === "active");
-    if (milestone) milestone.title = input.nextMilestone;
+    if (milestone) {
+      milestone.title = input.nextMilestone;
+    } else {
+      milestones.push({
+        id: uniqueSlug(`m-${id}`, milestones),
+        projectId: id,
+        title: input.nextMilestone,
+        summary: "",
+        priority: "Medium",
+        progress: 0,
+        status: "active",
+      });
+    }
     return updated;
   },
   async deleteProject(id: string) {

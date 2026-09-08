@@ -28,10 +28,10 @@ export function Greeting({ name }: { name: string }) {
 
   return (
     <div>
-      <h1 className="text-4xl font-bold tracking-tight text-fg">
+      <h1 className="greeting-title text-4xl font-bold tracking-tight text-fg">
         {greeting}, {name}.
       </h1>
-      <p className="mt-1.5 text-sm text-muted">Here&apos;s what&apos;s happening across your products.</p>
+      <p className="greeting-subtitle mt-1.5 text-sm text-muted">Here&apos;s what&apos;s happening across your products.</p>
     </div>
   );
 }

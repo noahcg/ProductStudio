@@ -3,7 +3,6 @@ import type { Activity, Project } from "@/lib/domain";
 import type { GeneratedSignal, SignalSeverity } from "@/lib/signals/engine";
 import { now as studioNow } from "@/lib/clock";
 import { supabaseMode, supabaseProjectsForProject, SUPABASE_THRESHOLDS } from "./config";
-import { mockSupabaseSnapshot } from "./mock";
 import { liveSupabaseSnapshot } from "./client";
 import type {
   SupabaseSnapshot,
@@ -60,7 +59,7 @@ function statusLabel(state: SupabaseProjectState, headline?: string): string {
 }
 
 /**
- * The Supabase monitoring provider — fetches usage metadata (live or mock), maps
+ * The Supabase monitoring provider — fetches live usage metadata when connected, maps
  * it into Product Studio's activity feed + signals, and derives a per-project
  * operational status. Supabase never owns domain data; this only augments
  * activity/signals/health ("can my products operate safely and reliably?").
@@ -129,7 +128,7 @@ export const getSupabase = cache(async (projects: Project[]): Promise<SupabaseRe
 
       const snapshots: SupabaseSnapshot[] = await Promise.all(
         supabaseProjects.map((p) =>
-          mode === "live" ? liveSupabaseSnapshot(p) : Promise.resolve(mockSupabaseSnapshot(p))
+          liveSupabaseSnapshot(p)
         )
       );
 

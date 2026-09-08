@@ -3,7 +3,6 @@ import type { Activity, Project } from "@/lib/domain";
 import type { GeneratedSignal } from "@/lib/signals/engine";
 import { now as studioNow } from "@/lib/clock";
 import { vercelMode, vercelProjectsForProject, VERCEL_THRESHOLDS } from "./config";
-import { mockDeploymentSnapshot } from "./mock";
 import { liveDeploymentSnapshot } from "./client";
 import type {
   DeploymentMeta,
@@ -76,7 +75,7 @@ function eventTitle(d: DeploymentMeta): string {
 }
 
 /**
- * The Vercel provider — fetches deployment metadata (live or mock), maps it into
+ * The Vercel provider — fetches live deployment metadata when connected, maps it into
  * Product Studio's activity feed + signals, and derives a per-project
  * deployment status. Vercel never owns domain data; this only augments
  * activity/signals/health ("can my products be used right now?").
@@ -146,7 +145,7 @@ export const getVercel = cache(async (projects: Project[]): Promise<VercelResult
 
       const snapshots: DeploymentSnapshot[] = await Promise.all(
         vercelProjects.map((p) =>
-          mode === "live" ? liveDeploymentSnapshot(p) : Promise.resolve(mockDeploymentSnapshot(p))
+          liveDeploymentSnapshot(p)
         )
       );
 
