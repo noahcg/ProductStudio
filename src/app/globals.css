@@ -26,9 +26,7 @@
   --color-danger: var(--danger);
   --color-info: var(--info);
 
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-script: var(--font-script), cursive;
-
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
   --radius-card: 16px;
 }
 

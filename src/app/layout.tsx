@@ -1,22 +1,8 @@
 import type { Metadata } from "next";
-import { Inter, Dancing_Script } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AppHeader } from "@/components/layout/app-header";
-import { getProfile, getAttentionInbox } from "@/lib/data";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const script = Dancing_Script({
-  variable: "--font-script",
-  subsets: ["latin"],
-  weight: ["600", "700"],
-  display: "swap",
-});
+import { getAttentionInbox } from "@/lib/data";
 
 export const metadata: Metadata = {
   title: "Product Studio",
@@ -33,17 +19,17 @@ const atmosphereScript = `(function(){try{var d=document.documentElement;if(loca
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const [profile, inbox] = await Promise.all([getProfile(), getAttentionInbox()]);
+  const inbox = await getAttentionInbox();
 
   return (
-    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${script.variable}`}>
+    <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen">
         <script dangerouslySetInnerHTML={{ __html: atmosphereScript }} />
         {/* Fixed background layers, behind all content. */}
         <div className="bg-base" aria-hidden="true" />
         <div className="atmosphere" aria-hidden="true" />
         <ThemeProvider>
-          <AppHeader brand={profile.fullName} inbox={inbox} />
+          <AppHeader inbox={inbox} />
           <main className="mx-auto w-full max-w-[1400px] px-6 pb-16 pt-6">
             {children}
           </main>

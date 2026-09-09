@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSyncExternalStore } from "react";
 import { cn } from "@/lib/utils";
@@ -42,10 +43,8 @@ function useClock() {
 }
 
 export function AppHeader({
-  brand,
   inbox,
 }: {
-  brand: string;
   inbox: Inbox;
 }) {
   const pathname = usePathname();
@@ -55,11 +54,16 @@ export function AppHeader({
     <header className="sticky top-0 z-40 border-b border-line bg-bg/80 backdrop-blur-xl">
       <div className="mx-auto flex h-[68px] w-full max-w-[1400px] items-center gap-6 px-6">
         {/* Logo */}
-        <Link href="/" className="flex flex-col leading-none">
-          <span className="font-script text-2xl text-fg">{brand}</span>
-          <span className="text-[10px] font-medium uppercase tracking-[0.32em] text-faint">
-            Product Studio
-          </span>
+        <Link href="/" className="shrink-0" aria-label="Product Studio home">
+          <Image
+            src="/images/ng-studio.png?v=20260909-2"
+            alt="Noah Glushien Product Studio"
+            width={2172}
+            height={724}
+            sizes="160px"
+            priority
+            className="h-[60px] w-auto"
+          />
         </Link>
 
         {/* Nav */}
