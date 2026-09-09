@@ -18,6 +18,7 @@ import type { VercelProjectStatus } from "@/lib/integrations/vercel/types";
 import type { SupabaseProjectStatus } from "@/lib/integrations/supabase/types";
 import { taskStats } from "@/lib/tasks/stats";
 import { cn } from "@/lib/utils";
+import { setLocalStorageValue, useLocalStorageValue } from "@/lib/client-store";
 import { Card, Badge, PageHeading, Button } from "@/components/ui";
 import { ProgressRing } from "@/components/donut";
 import { projectIcons } from "@/components/icons";
@@ -52,6 +53,8 @@ type OptimisticAction =
 type TaskModal = { mode: "closed" } | { mode: "new"; date?: string } | { mode: "edit"; task: Task };
 type ProjectModal = { mode: "closed" } | { mode: "new" } | { mode: "edit"; project: Project };
 
+const selectedProductStorageKey = "product-studio-selected-product";
+
 export function FocusBoard({
   products,
   projects,
@@ -75,9 +78,11 @@ export function FocusBoard({
 }) {
   const router = useRouter();
   const params = useSearchParams();
+  const selectedProductFromUrl = params.get("product");
+  const persistedProductId = useLocalStorageValue(selectedProductStorageKey);
   const [localProducts, setLocalProducts] = useState(products);
   const [localProjects, setLocalProjects] = useState(projects);
-  const [selectedProductId, setSelectedProductId] = useState(params.get("product") ?? projects[0]?.productId ?? products[0]?.id ?? "");
+  const [selectedProductId, setSelectedProductId] = useState(selectedProductFromUrl ?? projects[0]?.productId ?? products[0]?.id ?? "");
   const [selectedId, setSelectedId] = useState(params.get("project") ?? projects[0]?.id ?? "");
   const [taskModal, setTaskModal] = useState<TaskModal>({ mode: "closed" });
   const [projectModal, setProjectModal] = useState<ProjectModal>({ mode: "closed" });
@@ -85,6 +90,10 @@ export function FocusBoard({
   const [error, setError] = useState<string | null>(null);
   const [projectError, setProjectError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  const activeProductId =
+    selectedProductFromUrl ??
+    (localProducts.some((product) => product.id === persistedProductId) ? persistedProductId : selectedProductId);
 
   const [optimistic, applyOptimistic] = useOptimistic(tasks, (state: Task[], a: OptimisticAction) => {
     switch (a.type) {
@@ -97,8 +106,8 @@ export function FocusBoard({
     }
   });
 
-  const projectsForProduct = localProjects.filter((p) => p.productId === selectedProductId);
-  const selectedProduct = localProducts.find((p) => p.id === selectedProductId);
+  const projectsForProduct = localProjects.filter((p) => p.productId === activeProductId);
+  const selectedProduct = localProducts.find((p) => p.id === activeProductId);
   const project = projectsForProduct.find((p) => p.id === selectedId) ?? projectsForProduct[0];
   const effectiveSelectedId = project?.id ?? selectedId;
   const milestone =
@@ -177,7 +186,7 @@ export function FocusBoard({
         if (!res.ok) return setProjectError(res.error);
         setSelectedId(editing.id);
       } else {
-        const res = await createProjectAction({ ...input, productId: selectedProductId });
+        const res = await createProjectAction({ ...input, productId: activeProductId });
         if (!res.ok) return setProjectError(res.error);
         if (res.projectId) setSelectedId(res.projectId);
       }
@@ -195,6 +204,7 @@ export function FocusBoard({
       if (!editing && res.projectId) {
         setLocalProducts((state) => [...state, { id: res.projectId!, name: input.name.trim(), integrations: input.integrations ?? {} }]);
         setSelectedProductId(res.projectId);
+        setLocalStorageValue(selectedProductStorageKey, res.projectId);
         setSelectedId("");
       } else if (editing) {
         setLocalProducts((state) => state.map((product) => product.id === editing.id ? { ...product, ...input, integrations: input.integrations ?? {} } : product));
@@ -206,6 +216,7 @@ export function FocusBoard({
 
   function selectProduct(id: string) {
     setSelectedProductId(id);
+    setLocalStorageValue(selectedProductStorageKey, id);
     setSelectedId(localProjects.find((project) => project.productId === id)?.id ?? "");
   }
 
@@ -240,7 +251,7 @@ export function FocusBoard({
             projects={localProjects}
             tasks={optimistic}
             selectedId={effectiveSelectedId}
-            selectedProductId={selectedProductId}
+            selectedProductId={activeProductId}
             onSelect={setSelectedId}
             onSelectProduct={selectProduct}
             onNew={() => setProjectModal({ mode: "new" })}
@@ -385,7 +396,7 @@ export function FocusBoard({
       <ProjectForm
         open={projectModal.mode !== "closed"}
         initial={projectModal.mode === "edit" ? projectModal.project : null}
-        productId={selectedProductId}
+        productId={activeProductId}
         pending={pending}
         error={projectError}
         onSubmit={submitProject}
