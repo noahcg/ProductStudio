@@ -66,7 +66,16 @@ function mapProject(r: Row): Project {
 }
 
 function mapProduct(r: Row): Product {
-  return { id: s(r.slug), name: s(r.name) };
+  return {
+    id: s(r.slug),
+    name: s(r.name),
+    integrations: {
+      vercelProject: opt(r.vercel_project),
+      vercelTeamSlug: opt(r.vercel_team_slug),
+      supabaseProjectRef: opt(r.supabase_project_ref),
+      cloudflareAccountId: opt(r.cloudflare_account_id),
+    },
+  };
 }
 
 function mapMilestone(r: Row): Milestone {
@@ -314,7 +323,17 @@ export function supabaseSource(sb: SupabaseClient): DataSource {
       const slug = await uniqueSlugFor(sb, "products", input.name, "product");
       const { data, error } = await sb
         .from("products")
-        .insert({ slug, name: input.name.trim() })
+        .insert(productPayload(slug, input))
+        .select("*")
+        .single();
+      if (error) throw error;
+      return mapProduct(data as unknown as Row);
+    },
+    async updateProduct(id: string, input: ProductInput): Promise<Product> {
+      const { data, error } = await sb
+        .from("products")
+        .update(productPayload(id, input, false))
+        .eq("slug", id)
         .select("*")
         .single();
       if (error) throw error;
@@ -507,6 +526,18 @@ export function supabaseSource(sb: SupabaseClient): DataSource {
       if (error) throw error;
       return mapTask(data as unknown as Row);
     },
+  };
+}
+
+function productPayload(slug: string, input: ProductInput, includeSlug = true) {
+  const integrations = input.integrations ?? {};
+  return {
+    ...(includeSlug ? { slug } : {}),
+    name: input.name.trim(),
+    vercel_project: integrations.vercelProject?.trim() || null,
+    vercel_team_slug: integrations.vercelTeamSlug?.trim() || null,
+    supabase_project_ref: integrations.supabaseProjectRef?.trim() || null,
+    cloudflare_account_id: integrations.cloudflareAccountId?.trim() || null,
   };
 }
 

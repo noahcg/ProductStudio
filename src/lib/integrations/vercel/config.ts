@@ -1,4 +1,4 @@
-import { projectLinks } from "../project-links";
+import type { Product, Project } from "@/lib/domain";
 
 /**
  * Vercel integration configuration.
@@ -11,10 +11,14 @@ import { projectLinks } from "../project-links";
  * now?" — deployment health, not a deployment dashboard.
  */
 
-/** Project (slug) → connected Vercel projects. Supports multiple per project. */
-export const VERCEL_PROJECT_MAP: Record<string, string[]> = Object.fromEntries(
-  Object.entries(projectLinks).map(([id, link]) => [id, [link.vercelName]])
-);
+/** Resolve a project through its product's non-secret Vercel settings. */
+export function vercelConnectionForProject(project: Project, products: Product[]) {
+  const settings = products.find((product) => product.id === project.productId)?.integrations;
+  return {
+    projects: settings?.vercelProject ? [settings.vercelProject] : [],
+    teamSlug: settings?.vercelTeamSlug,
+  };
+}
 
 export type VercelMode = "live" | "off";
 
@@ -40,10 +44,6 @@ export function vercelTeamId(): string | undefined {
 }
 
 /** Vercel projects connected to a Product Studio project (empty if none mapped). */
-export function vercelProjectsForProject(projectId: string): string[] {
-  return VERCEL_PROJECT_MAP[projectId] ?? [];
-}
-
 // Thresholds for Vercel-derived signals (deterministic).
 export const VERCEL_THRESHOLDS = {
   repeatedFailures: 3, // critical: N consecutive failed deployments

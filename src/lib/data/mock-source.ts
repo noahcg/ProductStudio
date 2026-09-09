@@ -90,8 +90,15 @@ export const mockSource: DataSource = {
   },
 
   async createProduct(input: ProductInput) {
-    const product: Product = { id: uniqueSlug(slugify(input.name), products), name: input.name.trim() };
+    const product: Product = { id: uniqueSlug(slugify(input.name), products), name: input.name.trim(), integrations: cleanIntegrations(input) };
     products.push(product);
+    return product;
+  },
+  async updateProduct(id: string, input: ProductInput) {
+    const index = products.findIndex((product) => product.id === id);
+    if (index === -1) throw new Error(`Product ${id} not found`);
+    const product: Product = { ...products[index], name: input.name.trim(), integrations: cleanIntegrations(input) };
+    products[index] = product;
     return product;
   },
   async createProject(input: ProjectInput) {
@@ -243,6 +250,16 @@ export const mockSource: DataSource = {
     return task;
   },
 };
+
+function cleanIntegrations(input: ProductInput): Product["integrations"] {
+  const value = input.integrations ?? {};
+  return {
+    vercelProject: value.vercelProject?.trim() || undefined,
+    vercelTeamSlug: value.vercelTeamSlug?.trim() || undefined,
+    supabaseProjectRef: value.supabaseProjectRef?.trim() || undefined,
+    cloudflareAccountId: value.cloudflareAccountId?.trim() || undefined,
+  };
+}
 
 function newId(prefix: string): string {
   return typeof crypto !== "undefined" && crypto.randomUUID

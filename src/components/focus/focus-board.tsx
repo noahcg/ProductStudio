@@ -39,6 +39,7 @@ import {
 import {
   createProjectAction,
   createProductAction,
+  updateProductAction,
   updateProjectAction,
   deleteProjectAction,
 } from "@/app/projects/actions";
@@ -80,7 +81,7 @@ export function FocusBoard({
   const [selectedId, setSelectedId] = useState(params.get("project") ?? projects[0]?.id ?? "");
   const [taskModal, setTaskModal] = useState<TaskModal>({ mode: "closed" });
   const [projectModal, setProjectModal] = useState<ProjectModal>({ mode: "closed" });
-  const [productModalOpen, setProductModalOpen] = useState(false);
+  const [productModal, setProductModal] = useState<"new" | Product | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [projectError, setProjectError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -188,14 +189,17 @@ export function FocusBoard({
   function submitProduct(input: ProductInput) {
     setProjectError(null);
     startTransition(async () => {
-      const res = await createProductAction(input);
+      const editing = productModal && productModal !== "new" ? productModal : null;
+      const res = editing ? await updateProductAction(editing.id, input) : await createProductAction(input);
       if (!res.ok) return setProjectError(res.error);
-      if (res.projectId) {
-        setLocalProducts((state) => [...state, { id: res.projectId!, name: input.name.trim() }]);
+      if (!editing && res.projectId) {
+        setLocalProducts((state) => [...state, { id: res.projectId!, name: input.name.trim(), integrations: input.integrations ?? {} }]);
         setSelectedProductId(res.projectId);
         setSelectedId("");
+      } else if (editing) {
+        setLocalProducts((state) => state.map((product) => product.id === editing.id ? { ...product, ...input, integrations: input.integrations ?? {} } : product));
       }
-      setProductModalOpen(false);
+      setProductModal(null);
       router.refresh();
     });
   }
@@ -225,7 +229,7 @@ export function FocusBoard({
       {localProducts.length === 0 ? (
         <Card className="p-10 text-center text-sm text-muted">
           <p>No products yet. Create a product, then add projects inside it.</p>
-          <Button className="mt-4" variant="primary" onClick={() => setProductModalOpen(true)}>
+          <Button className="mt-4" variant="primary" onClick={() => setProductModal("new")}>
             <Plus className="h-4 w-4" /> Create product
           </Button>
         </Card>
@@ -240,7 +244,8 @@ export function FocusBoard({
             onSelect={setSelectedId}
             onSelectProduct={selectProduct}
             onNew={() => setProjectModal({ mode: "new" })}
-            onNewProduct={() => setProductModalOpen(true)}
+            onNewProduct={() => setProductModal("new")}
+            onEditProduct={(product) => setProductModal(product)}
           />
 
           {!project ? (
@@ -359,8 +364,8 @@ export function FocusBoard({
 
             {selectedRec && <ProjectSuggestion rec={selectedRec} isTop={ranked[0]?.project.id === effectiveSelectedId} />}
             {selectedHealth && <HealthSummary health={selectedHealth} />}
-            <DeploymentPanel projectId={effectiveSelectedId} status={selectedDeployment} />
-            <SupabasePanel projectId={effectiveSelectedId} status={selectedSupabase} />
+            <DeploymentPanel product={selectedProduct} status={selectedDeployment} />
+            <SupabasePanel product={selectedProduct} status={selectedSupabase} />
             <DomainPanel domains={selectedDomains} projectId={effectiveSelectedId} />
           </div>
           </>}
@@ -390,11 +395,12 @@ export function FocusBoard({
         }}
       />
       <ProductForm
-        open={productModalOpen}
+        open={productModal !== null}
+        initial={productModal && productModal !== "new" ? productModal : null}
         pending={pending}
         error={projectError}
         onSubmit={submitProduct}
-        onClose={() => { setProductModalOpen(false); setProjectError(null); }}
+        onClose={() => { setProductModal(null); setProjectError(null); }}
       />
     </div>
   );
@@ -423,6 +429,7 @@ function ProjectSwitcher({
   onSelectProduct,
   onNew,
   onNewProduct,
+  onEditProduct,
 }: {
   products: Product[];
   projects: Project[];
@@ -433,6 +440,7 @@ function ProjectSwitcher({
   onSelectProduct: (id: string) => void;
   onNew: () => void;
   onNewProduct: () => void;
+  onEditProduct: (product: Product) => void;
 }) {
   return (
     <Card className="h-fit p-3">
@@ -450,10 +458,13 @@ function ProjectSwitcher({
           const productProjects = projects.filter((project) => project.productId === product.id);
           const selectedProduct = product.id === selectedProductId;
           return <div key={product.id} className="rounded-lg">
-            <button onClick={() => onSelectProduct(product.id)} className={cn("flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors", selectedProduct ? "bg-accent/15 text-fg" : "text-muted hover:bg-surface-2 hover:text-fg")}>
+            <div className={cn("flex w-full items-center rounded-lg", selectedProduct ? "bg-accent/15 text-fg" : "text-muted hover:bg-surface-2 hover:text-fg")}>
+            <button onClick={() => onSelectProduct(product.id)} className="flex min-w-0 flex-1 items-center justify-between px-3 py-2.5 text-left transition-colors">
               <span className="truncate text-sm font-semibold">{product.name}</span>
               <span className="ml-2 shrink-0 text-xs text-faint">{productProjects.length} {productProjects.length === 1 ? "project" : "projects"}</span>
             </button>
+            <button type="button" aria-label={`Edit ${product.name} settings`} onClick={() => onEditProduct(product)} className="mr-1 rounded-md p-2 text-faint hover:bg-surface-2 hover:text-fg"><Settings className="h-3.5 w-3.5" /></button>
+            </div>
             {selectedProduct && <div className="ml-3 mt-1 space-y-1 border-l border-line pl-2">
               {productProjects.map((project) => {
                 const Icon = projectIcons[project.icon];

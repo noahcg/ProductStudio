@@ -1,8 +1,8 @@
 import { cache } from "react";
-import type { Activity, Project } from "@/lib/domain";
+import type { Activity, Product, Project } from "@/lib/domain";
 import type { GeneratedSignal } from "@/lib/signals/engine";
 import { now as studioNow } from "@/lib/clock";
-import { vercelMode, vercelProjectsForProject, VERCEL_THRESHOLDS } from "./config";
+import { vercelConnectionForProject, vercelMode, VERCEL_THRESHOLDS } from "./config";
 import { liveDeploymentSnapshot } from "./client";
 import type {
   DeploymentMeta,
@@ -83,7 +83,7 @@ function eventTitle(d: DeploymentMeta): string {
  * Cached per request so the multiple readers (feed, signals, health, cards)
  * share one fetch.
  */
-export const getVercel = cache(async (projects: Project[]): Promise<VercelResult> => {
+export const getVercel = cache(async (projects: Project[], products: Product[]): Promise<VercelResult> => {
   const mode = vercelMode();
   if (mode === "off") {
     return { mode, events: [], signals: [], statuses: {} };
@@ -118,7 +118,8 @@ export const getVercel = cache(async (projects: Project[]): Promise<VercelResult
 
   try {
     for (const project of projects) {
-      const vercelProjects = vercelProjectsForProject(project.id);
+      const connection = vercelConnectionForProject(project, products);
+      const vercelProjects = connection.projects;
 
       // Missing mapping → INFO, no deployment status surfaced on the card.
       if (vercelProjects.length === 0) {
@@ -145,7 +146,7 @@ export const getVercel = cache(async (projects: Project[]): Promise<VercelResult
 
       const snapshots: DeploymentSnapshot[] = await Promise.all(
         vercelProjects.map((p) =>
-          liveDeploymentSnapshot(p)
+          liveDeploymentSnapshot(p, connection.teamSlug)
         )
       );
 

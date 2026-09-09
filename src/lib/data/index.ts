@@ -74,6 +74,10 @@ export async function createProduct(input: ProductInput): Promise<Product> {
   return activeSource().createProduct(input);
 }
 
+export async function updateProduct(id: string, input: ProductInput): Promise<Product> {
+  return activeSource().updateProduct(id, input);
+}
+
 export async function getProjects(): Promise<Project[]> {
   return withSource((s) => s.projects());
 }
@@ -177,8 +181,9 @@ const EMPTY_FOCUS: Focus = {
 async function pipeline(
   s: DataSource
 ): Promise<FocusInput & { generatedSignals: GeneratedSignal[] }> {
-  const [projects, milestones, roadmap, tasks, decisions, baseActivity, signals, expenses, storedDomains] =
+  const [products, projects, milestones, roadmap, tasks, decisions, baseActivity, signals, expenses, storedDomains] =
     await Promise.all([
+      s.products(),
       s.projects(),
       s.milestones(),
       s.roadmap(),
@@ -196,8 +201,8 @@ async function pipeline(
   // are never the source of truth for the domain entities above.
   const [github, vercel, supabase] = await Promise.all([
     getGitHub(projects),
-    getVercel(projects),
-    getSupabase(projects),
+    getVercel(projects, products),
+    getSupabase(projects, products),
   ]);
   const activity = mergeActivity(baseActivity, [...github.events, ...vercel.events, ...supabase.events]);
   const generatedSignals = [
@@ -242,13 +247,17 @@ export async function getGitHubStatuses(): Promise<Record<string, GitHubProjectS
 
 /** Lightweight per-project Vercel deployment status for the Studio cards. */
 export async function getVercelStatuses(): Promise<Record<string, VercelProjectStatus>> {
-  return withSource(async (s) => getVercel(await s.projects()).then((v) => v.statuses));
+  return withSource(async (s) => {
+    const [projects, products] = await Promise.all([s.projects(), s.products()]);
+    return getVercel(projects, products).then((v) => v.statuses);
+  });
 }
 
 /** Per-project deployment health (Healthy/Warning/Critical) for the Studio cards. */
 export async function getDeploymentHealthByProject(): Promise<Record<string, DeploymentHealth>> {
   return withSource(async (s) => {
-    const { statuses } = await getVercel(await s.projects());
+    const [projects, products] = await Promise.all([s.projects(), s.products()]);
+    const { statuses } = await getVercel(projects, products);
     const out: Record<string, DeploymentHealth> = {};
     for (const [projectId, st] of Object.entries(statuses)) {
       if (st.connected) out[projectId] = st.health;
@@ -259,13 +268,17 @@ export async function getDeploymentHealthByProject(): Promise<Record<string, Dep
 
 /** Lightweight per-project Supabase operational status for the Studio cards + Focus. */
 export async function getSupabaseStatuses(): Promise<Record<string, SupabaseProjectStatus>> {
-  return withSource(async (s) => getSupabase(await s.projects()).then((sb) => sb.statuses));
+  return withSource(async (s) => {
+    const [projects, products] = await Promise.all([s.projects(), s.products()]);
+    return getSupabase(projects, products).then((sb) => sb.statuses);
+  });
 }
 
 /** Per-project Supabase health (Healthy/Warning/Critical) for the Studio cards. */
 export async function getSupabaseHealthByProject(): Promise<Record<string, SupabaseHealth>> {
   return withSource(async (s) => {
-    const { statuses } = await getSupabase(await s.projects());
+    const [projects, products] = await Promise.all([s.projects(), s.products()]);
+    const { statuses } = await getSupabase(projects, products);
     const out: Record<string, SupabaseHealth> = {};
     for (const [projectId, st] of Object.entries(statuses)) {
       if (st.connected) out[projectId] = st.health;
@@ -399,12 +412,12 @@ export async function getIntegrations(): Promise<Integration[]> {
 
 export async function getActivity(): Promise<Activity[]> {
   return withSource(async (s) => {
-    const projects = await s.projects();
+    const [projects, products] = await Promise.all([s.projects(), s.products()]);
     const [base, github, vercel, supabase] = await Promise.all([
       s.activity(),
       getGitHub(projects),
-      getVercel(projects),
-      getSupabase(projects),
+      getVercel(projects, products),
+      getSupabase(projects, products),
     ]);
     return mergeActivity(base, [...github.events, ...vercel.events, ...supabase.events]);
   });

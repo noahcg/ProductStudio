@@ -1,4 +1,3 @@
-import { projectLinks } from "../project-links";
 import { vercelToken, vercelTeamId } from "./config";
 import type { DeploymentMeta, DeploymentSnapshot, DeploymentState, DeploymentEnvironment } from "./types";
 
@@ -55,13 +54,12 @@ async function vc<T>(path: string, token: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export async function liveDeploymentSnapshot(vercelProject: string): Promise<DeploymentSnapshot> {
+export async function liveDeploymentSnapshot(vercelProject: string, teamSlug?: string): Promise<DeploymentSnapshot> {
   const token = vercelToken();
   if (!token) return { vercelProject, connected: false, state: "unknown", recent: [], error: "No token" };
 
   const team = vercelTeamId();
-  const slug = Object.values(projectLinks).find((link) => link.vercelName === vercelProject)?.vercelTeamSlug;
-  const teamQ = team ? `&teamId=${encodeURIComponent(team)}` : slug ? `&slug=${encodeURIComponent(slug)}` : "";
+  const teamQ = team ? `&teamId=${encodeURIComponent(team)}` : teamSlug ? `&slug=${encodeURIComponent(teamSlug)}` : "";
 
   try {
     const data = await vc<{ deployments: VercelDeployment[] }>(

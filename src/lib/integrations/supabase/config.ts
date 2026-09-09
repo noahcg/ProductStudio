@@ -1,4 +1,4 @@
-import { projectLinks } from "../project-links";
+import type { Product, Project } from "@/lib/domain";
 
 /**
  * Supabase monitoring configuration.
@@ -15,10 +15,11 @@ import { projectLinks } from "../project-links";
  * data store seam.
  */
 
-/** Project (slug) → connected Supabase project(s). One today; many supported. */
-export const SUPABASE_PROJECT_MAP: Record<string, string[]> = Object.fromEntries(
-  Object.entries(projectLinks).map(([id, link]) => [id, [link.supabaseRef]])
-);
+/** Resolve a project through its product's non-secret Supabase settings. */
+export function supabaseConnectionForProject(project: Project, products: Product[]) {
+  const ref = products.find((product) => product.id === project.productId)?.integrations.supabaseProjectRef;
+  return ref ? [ref] : [];
+}
 
 export type SupabaseMode = "live" | "off";
 
@@ -39,10 +40,6 @@ export function supabaseToken(): string | undefined {
 }
 
 /** Supabase projects connected to a Product Studio project (empty if none mapped). */
-export function supabaseProjectsForProject(projectId: string): string[] {
-  return SUPABASE_PROJECT_MAP[projectId] ?? [];
-}
-
 /**
  * Usage thresholds (percent) for Supabase-derived signals (deterministic).
  * Bandwidth runs hotter before alerting (it resets monthly).

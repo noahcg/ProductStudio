@@ -60,6 +60,7 @@ export interface DataSource {
 
   // Writes (Projects / portfolio).
   createProduct(input: ProductInput): Promise<Product>;
+  updateProduct(id: string, input: ProductInput): Promise<Product>;
   createProject(input: ProjectInput): Promise<Project>;
   updateProject(id: string, input: ProjectInput): Promise<Project>;
   deleteProject(id: string): Promise<void>;

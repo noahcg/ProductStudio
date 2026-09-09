@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getProject, upsertDomainMonitoring } from "@/lib/data";
+import { getProject, getProducts, upsertDomainMonitoring } from "@/lib/data";
 import { checkCloudflareDomains } from "@/lib/integrations/cloudflare/domains";
 
 export type DomainCheckResult = { ok: true; checked: number } | { ok: false; error: string };
@@ -9,11 +9,14 @@ export type DomainCheckResult = { ok: true; checked: number } | { ok: false; err
 export async function checkProjectDomainsAction(projectId: string): Promise<DomainCheckResult> {
   try {
     const project = await getProject(projectId);
+    if (!project) return { ok: false, error: "Project not found." };
     const domain = project?.domain?.trim();
     if (!domain) return { ok: false, error: "Add a domain to this project's details first." };
     const hostname = new URL(domain.includes("://") ? domain : `https://${domain}`).hostname.toLowerCase();
     if (!hostname) return { ok: false, error: "Enter a valid domain in the project details." };
-    const updates = await checkCloudflareDomains([{ projectId, name: hostname }]);
+    const products = await getProducts();
+    const accountId = products.find((product) => product.id === project.productId)?.integrations.cloudflareAccountId;
+    const updates = await checkCloudflareDomains([{ projectId, name: hostname, accountId }]);
     await upsertDomainMonitoring(updates);
     for (const path of ["/", "/projects", "/focus", "/signals", "/review"]) revalidatePath(path);
     return { ok: true, checked: updates.length };

@@ -104,7 +104,7 @@ function normalizeStore(store: LocalStore): LocalStore {
   // Upgrade the former flat portfolio without losing any existing work. Each
   // legacy project becomes the first project inside a product of the same name.
   if (!Array.isArray(store.products)) {
-    store.products = store.projects.map((project) => ({ id: project.id, name: project.name }));
+    store.products = store.projects.map((project) => ({ id: project.id, name: project.name, integrations: {} }));
     store.projects = store.projects.map((project) => ({
       ...project,
       productId: project.id,
@@ -112,6 +112,7 @@ function normalizeStore(store: LocalStore): LocalStore {
       tagline: project.tagline ?? "",
     }));
   }
+  store.products = store.products.map((product) => ({ ...product, integrations: product.integrations ?? {} }));
   store.version = 2;
   const fallbackDate = studioNow().toISOString();
   store.tasks = store.tasks.map((task) => ({
@@ -144,6 +145,16 @@ function uniqueSlug(base: string, existing: { id: string }[]): string {
     const next = `${base}-${i}`;
     if (!taken.has(next)) return next;
   }
+}
+
+function cleanIntegrations(input: ProductInput): Product["integrations"] {
+  const value = input.integrations ?? {};
+  return {
+    vercelProject: value.vercelProject?.trim() || undefined,
+    vercelTeamSlug: value.vercelTeamSlug?.trim() || undefined,
+    supabaseProjectRef: value.supabaseProjectRef?.trim() || undefined,
+    cloudflareAccountId: value.cloudflareAccountId?.trim() || undefined,
+  };
 }
 
 function nextSortOrder(items: { sortOrder: number }[]): number {
@@ -290,8 +301,17 @@ export const localSource: DataSource = {
   async createProduct(input: ProductInput) {
     return mutate((store) => {
       const id = uniqueSlug(slugify(input.name), store.products);
-      const product: Product = { id, name: input.name.trim() };
+      const product: Product = { id, name: input.name.trim(), integrations: cleanIntegrations(input) };
       store.products.push(product);
+      return product;
+    });
+  },
+  async updateProduct(id: string, input: ProductInput) {
+    return mutate((store) => {
+      const index = store.products.findIndex((product) => product.id === id);
+      if (index === -1) throw new Error(`Product ${id} not found`);
+      const product: Product = { ...store.products[index], name: input.name.trim(), integrations: cleanIntegrations(input) };
+      store.products[index] = product;
       return product;
     });
   },

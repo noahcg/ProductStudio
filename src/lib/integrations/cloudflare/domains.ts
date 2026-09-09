@@ -15,18 +15,20 @@ type CloudflareResponse = {
   errors?: Array<{ message?: string }>;
 };
 
-export type DomainToCheck = Pick<DomainMonitoringUpdate, "projectId" | "name">;
+export type DomainToCheck = Pick<DomainMonitoringUpdate, "projectId" | "name"> & { accountId?: string };
 
 /** Fetch read-only Registrar facts and inspect the certificate served over HTTPS. */
 export async function checkCloudflareDomains(domains: DomainToCheck[]): Promise<DomainMonitoringUpdate[]> {
-  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
+  const fallbackAccountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
   const token = process.env.CLOUDFLARE_API_TOKEN?.trim();
-  if (!accountId || !token) {
+  if (!token || (!fallbackAccountId && domains.some((domain) => !domain.accountId))) {
     throw new Error("Add CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN to the server environment first.");
   }
 
   const checkedAt = new Date().toISOString();
   return Promise.all(domains.map(async (domain) => {
+    const accountId = domain.accountId || fallbackAccountId;
+    if (!accountId) throw new Error("No Cloudflare account is configured for this product.");
     const registration = await getRegistration(accountId, token, domain.name);
     const sslStatus = await getSslStatus(domain.name);
     return {

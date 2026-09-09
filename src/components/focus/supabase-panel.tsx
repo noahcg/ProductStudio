@@ -1,5 +1,5 @@
-import { projectLinks } from "@/lib/integrations/project-links";
 import { Database, CircleCheck, AlertTriangle, CircleX, CircleDashed } from "lucide-react";
+import type { Product } from "@/lib/domain";
 import type {
   SupabaseProjectStatus,
   SupabaseProjectState,
@@ -37,8 +37,9 @@ function barTone(percent: number, t: { watch: number; warning: number; critical:
   return "bg-success";
 }
 
-export function SupabasePanel({ status, projectId }: { status?: SupabaseProjectStatus; projectId: string }) {
-  const link = projectLinks[projectId];
+export function SupabasePanel({ status, product }: { status?: SupabaseProjectStatus; product?: Product }) {
+  const ref = product?.integrations.supabaseProjectRef;
+  const dashboard = ref ? `https://supabase.com/dashboard/project/${ref}` : undefined;
   return (
     <Card className="p-5">
       <div className="flex items-center gap-2">
@@ -53,7 +54,7 @@ export function SupabasePanel({ status, projectId }: { status?: SupabaseProjectS
         <p className="mt-3 text-xs text-muted">
           {status && status.supabaseProjects.length > 0
             ? "Supabase status unavailable. Check the monitoring connection."
-            : link ? "Project linked. Live monitoring needs an access token and must be enabled." : "No Supabase project configured."}
+            : ref ? "Product linked. Live monitoring needs an access token and must be enabled." : "No Supabase project configured."}
         </p>
       ) : (
         <div className="mt-4 space-y-3 text-xs">
@@ -72,8 +73,8 @@ export function SupabasePanel({ status, projectId }: { status?: SupabaseProjectS
           )}
         </div>
       )}
-      {link && <div className="mt-4 flex flex-wrap gap-3 text-xs">
-        <a className="text-info hover:underline" href={link.supabaseDashboard} target="_blank" rel="noreferrer">Open Supabase ↗</a>
+      {dashboard && <div className="mt-4 flex flex-wrap gap-3 text-xs">
+        <a className="text-info hover:underline" href={dashboard} target="_blank" rel="noreferrer">Open Supabase ↗</a>
       </div>}
     </Card>
   );

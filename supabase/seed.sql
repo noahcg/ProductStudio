@@ -11,8 +11,8 @@ truncate
   tasks, roadmap_items, milestones, projects, products, integrations
   restart identity cascade;
 
-insert into products (slug, name)
-values ('home-cooked', 'Home Cooked');
+insert into products (slug, name, vercel_project, vercel_team_slug, supabase_project_ref)
+values ('home-cooked', 'Home Cooked', 'home-cooked', 'noahcgs-projects', 'wcoubzejnqnknvgdyjui');
 
 insert into projects
   (slug, product_id, name, tagline, status, progress, next_milestone, open_tasks, blockers, accent, icon, repo, primary_domain, position)

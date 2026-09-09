@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import type { ProductInput, ProjectInput } from "@/lib/domain";
-import { createProduct, createProject, updateProject, deleteProject } from "@/lib/data";
+import { createProduct, updateProduct, createProject, updateProject, deleteProject } from "@/lib/data";
 
 export type ProjectActionResult =
   | { ok: true; projectId?: string }
@@ -44,6 +44,17 @@ export async function createProductAction(input: ProductInput): Promise<ProjectA
     return { ok: true, projectId: product.id };
   } catch (e) {
     return { ok: false, error: (e as Error)?.message ?? "Failed to create product." };
+  }
+}
+
+export async function updateProductAction(id: string, input: ProductInput): Promise<ProjectActionResult> {
+  if (!input.name.trim()) return { ok: false, error: "Product name is required." };
+  try {
+    await updateProduct(id, input);
+    revalidate();
+    return { ok: true, projectId: id };
+  } catch (e) {
+    return { ok: false, error: (e as Error)?.message ?? "Failed to update product." };
   }
 }
 

@@ -1,8 +1,8 @@
 import { cache } from "react";
-import type { Activity, Project } from "@/lib/domain";
+import type { Activity, Product, Project } from "@/lib/domain";
 import type { GeneratedSignal, SignalSeverity } from "@/lib/signals/engine";
 import { now as studioNow } from "@/lib/clock";
-import { supabaseMode, supabaseProjectsForProject, SUPABASE_THRESHOLDS } from "./config";
+import { supabaseConnectionForProject, supabaseMode, SUPABASE_THRESHOLDS } from "./config";
 import { liveSupabaseSnapshot } from "./client";
 import type {
   SupabaseSnapshot,
@@ -67,7 +67,7 @@ function statusLabel(state: SupabaseProjectState, headline?: string): string {
  * Cached per request so the multiple readers (feed, signals, health, cards)
  * share one fetch.
  */
-export const getSupabase = cache(async (projects: Project[]): Promise<SupabaseResult> => {
+export const getSupabase = cache(async (projects: Project[], products: Product[]): Promise<SupabaseResult> => {
   const mode = supabaseMode();
   if (mode === "off") {
     return { mode, events: [], signals: [], statuses: {} };
@@ -102,7 +102,7 @@ export const getSupabase = cache(async (projects: Project[]): Promise<SupabaseRe
 
   try {
     for (const project of projects) {
-      const supabaseProjects = supabaseProjectsForProject(project.id);
+      const supabaseProjects = supabaseConnectionForProject(project, products);
 
       // Missing mapping → INFO, no operational status surfaced on the card.
       if (supabaseProjects.length === 0) {
