@@ -27,11 +27,11 @@ export function Greeting({ name }: { name: string }) {
   );
 
   return (
-    <div className="heading-backdrop min-w-0 max-w-full">
-      <h1 className="greeting-title text-4xl font-bold tracking-tight text-fg">
+    <div className="min-w-0 max-w-full">
+      <h1 className="greeting-title text-3xl font-bold tracking-[-0.04em] text-fg sm:text-4xl">
         {greeting}, {name}.
       </h1>
-      <p className="greeting-subtitle mt-1.5 text-sm text-muted">Here&apos;s what&apos;s happening across your products.</p>
+      <p className="greeting-subtitle mt-1.5 text-sm text-muted">Your product studio is in motion. Here&apos;s the clearest next move.</p>
     </div>
   );
 }

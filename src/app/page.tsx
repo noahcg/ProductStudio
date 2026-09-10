@@ -1,5 +1,5 @@
 import { connection } from "next/server";
-import { Activity, AlertTriangle, ArrowRight, DollarSign, Star } from "lucide-react";
+import { ArrowRight, Star } from "lucide-react";
 import {
   getWeeklySummary,
   getProfile,
@@ -11,7 +11,6 @@ import { NeedsAttention } from "@/components/studio/needs-attention";
 import { RecentActivity } from "@/components/studio/recent-activity";
 import { MonthlySpend } from "@/components/studio/monthly-spend";
 import { LatestReview } from "@/components/studio/latest-review";
-import { Greeting } from "@/components/studio/greeting";
 import { MorningProjects } from "@/components/studio/morning-projects";
 import { currency } from "@/lib/utils";
 
@@ -25,18 +24,16 @@ export default async function StudioPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-5">
-        <Greeting name={profile.name} />
-        <div className="flex flex-wrap items-center gap-2">
-          <QuietStat icon={<Activity className="h-4 w-4" />} label="Active" value={String(stats.active)} />
-          <QuietStat icon={<AlertTriangle className="h-4 w-4" />} label="Attention" value={String(stats.needsAttention)} tone="warn" />
-          <QuietStat icon={<DollarSign className="h-4 w-4" />} label="Spend" value={currency(stats.monthlySpend)} />
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="flex flex-col gap-5">
-          <CurrentFocus />
+          <CurrentFocus
+            name={profile.name}
+            stats={{
+              active: stats.active,
+              needsAttention: stats.needsAttention,
+              monthlySpend: currency(stats.monthlySpend),
+            }}
+          />
           <MorningProjects />
 
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
@@ -66,26 +63,6 @@ export default async function StudioPage() {
           {weekly.updates > 0 ? "Weekly Summary" : "Open Home Cooked"} <ArrowRight className="h-3.5 w-3.5" />
         </LinkButton>
       </div>
-    </div>
-  );
-}
-
-function QuietStat({
-  icon,
-  label,
-  value,
-  tone = "default",
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  tone?: "default" | "warn";
-}) {
-  return (
-    <div className="inline-flex items-center gap-2 rounded-lg border border-line bg-surface/55 px-3 py-2 text-sm">
-      <span className={tone === "warn" ? "text-warning" : "text-muted"}>{icon}</span>
-      <span className="font-semibold text-fg">{value}</span>
-      <span className="text-xs text-muted">{label}</span>
     </div>
   );
 }

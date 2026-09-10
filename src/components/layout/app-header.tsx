@@ -54,7 +54,7 @@ export function AppHeader({
     <header className="sticky top-0 z-40 border-b border-line bg-bg/80 backdrop-blur-xl">
       <div className="mx-auto flex h-[68px] w-full max-w-[1400px] items-center gap-6 px-6">
         {/* Logo */}
-        <Link href="/" className="shrink-0" aria-label="Product Studio home">
+        <Link href="/" className="brand-mark relative isolate shrink-0" aria-label="Product Studio home">
           <Image
             src="/images/ng-studio.png?v=20260909-2"
             alt="Noah Glushien Product Studio"
