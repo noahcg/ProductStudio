@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // The Electron package starts Next's traced production server locally. This
+  // keeps server actions and route handlers available inside the desktop app.
+  output: "standalone",
   images: {
     // The logo version is intentional: it gives browsers a new optimized image
     // URL whenever the source file is replaced, without permitting arbitrary

@@ -51,7 +51,13 @@ interface LocalStore {
   spendTrend: SpendTrendPoint[];
 }
 
-const storePath = path.join(process.cwd(), ".product-studio", "data.json");
+// Web development keeps its store in the project as before. The packaged
+// desktop shell injects PRODUCT_STUDIO_DATA_DIR so its data survives app updates
+// and never attempts to write inside the read-only application bundle.
+const configuredDataDir = process.env.PRODUCT_STUDIO_DATA_DIR?.trim();
+const storePath = configuredDataDir
+  ? path.join(configuredDataDir, "data.json")
+  : path.join(process.cwd(), ".product-studio", "data.json");
 
 function seedStore(): LocalStore {
   return clone({

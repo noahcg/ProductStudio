@@ -2,15 +2,21 @@
   "name": "product-studio",
   "version": "0.1.0",
   "private": true,
+  "main": "desktop/main.cjs",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "desktop:dev": "electron desktop/main.cjs",
+    "desktop:build": "next build && node scripts/prepare-desktop.mjs",
+    "desktop:package": "npm run desktop:build && electron-builder --mac dir --publish never",
+    "desktop:migrate-data": "node scripts/migrate-desktop-data.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.107.0",
     "clsx": "^2.1.1",
+    "dotenv": "^17.4.2",
     "lucide-react": "^1.17.0",
     "next": "16.2.7",
     "next-themes": "^0.4.6",
@@ -23,9 +29,27 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "electron": "^41.7.1",
+    "electron-builder": "^25.1.8",
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "build": {
+    "appId": "com.noah.productstudio",
+    "productName": "Product Studio",
+    "asar": true,
+    "directories": { "output": "release" },
+    "files": ["desktop/**/*", "package.json"],
+    "icon": "desktop-dist/app-icon.icns",
+    "extraResources": [
+      { "from": "desktop-dist/server", "to": "server" },
+      { "from": "public/images/app-icon.png", "to": "tray-icon.png" }
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": ["dir"]
+    }
   }
 }
