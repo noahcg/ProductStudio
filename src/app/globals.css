@@ -57,14 +57,14 @@
 }
 
 .light {
-  /* Light — clean, near-white blue surfaces let the navy and electric-blue
-     studio mark read crisply while retaining a cool glass character. */
-  --bg: #f5f8fd;
-  --bg-elevated: #fbfcff;
-  --surface: #f7faff;
-  --surface-2: #e9f0fa;
-  --line: rgba(80, 116, 166, 0.22);
-  --line-strong: rgba(56, 93, 151, 0.32);
+  /* Light — calm blue-gray paper surfaces. These are intentionally more solid
+     than the atmospheric backdrop so content feels anchored, not glassy. */
+  --bg: #edf2f7;
+  --bg-elevated: #f8fafc;
+  --surface: #f5f7fa;
+  --surface-2: #e6ecf3;
+  --line: rgba(55, 76, 105, 0.20);
+  --line-strong: rgba(44, 66, 94, 0.32);
 
   --fg: #0b1b2e;
   --muted: #243f60;
@@ -88,9 +88,9 @@ html.light .project-card,
 html.light .bg-surface\/70,
 html.light .bg-surface\/60,
 html.light .bg-surface\/55 {
-  background-color: color-mix(in srgb, var(--surface) 88%, transparent);
-  backdrop-filter: blur(18px) saturate(1.08);
-  box-shadow: 0 18px 44px -34px rgba(29, 91, 165, 0.3);
+  background-color: color-mix(in srgb, var(--surface) 94%, transparent);
+  backdrop-filter: none;
+  box-shadow: 0 18px 44px -34px rgba(31, 49, 74, 0.22);
 }
 
 html.light .bg-surface,
@@ -99,8 +99,8 @@ html.light .bg-surface-2\/60,
 html.light .bg-surface-2\/50,
 html.light .bg-surface-2\/45,
 html.light .bg-surface-2\/40 {
-  background-color: color-mix(in srgb, var(--surface-2) 78%, transparent);
-  backdrop-filter: blur(14px) saturate(1.04);
+  background-color: color-mix(in srgb, var(--surface-2) 92%, transparent);
+  backdrop-filter: none;
 }
 
 html.light .bg-bg\/80 {
@@ -148,8 +148,8 @@ html.light .brand-mark::before {
 }
 
 html.light .bg-bg\/55 {
-  background-color: color-mix(in srgb, var(--bg) 76%, transparent);
-  backdrop-filter: blur(14px) saturate(1.04);
+  background-color: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: none;
 }
 
 * {
@@ -327,79 +327,50 @@ html.light .roadmap-empty {
   backdrop-filter: none;
 }
 
-/* Light theme leaves the room photo unobscured. Page-level text gets its own
-   treatment below instead of relying on a full-screen scrim. */
+/* Light theme gets a brief, full-width top scrim. It gives page headings a
+   dependable field without turning the title itself into a separate panel;
+   the fade finishes before the main working surface begins. */
 html.light .atmosphere::after {
-  content: none;
+  content: "";
+  background: linear-gradient(
+    to bottom,
+    rgba(18, 43, 78, 0.80) 0,
+    rgba(18, 43, 78, 0.68) 6.5rem,
+    rgba(18, 43, 78, 0.40) 14rem,
+    rgba(18, 43, 78, 0.12) 19.5rem,
+    transparent 24rem
+  );
 }
 
 html.light .atmosphere {
   filter: saturate(0.88) contrast(0.94) brightness(0.98);
 }
 
-/* A square gradient backing borrows its colors from each studio scene.
-   Feather only the top and bottom, keeping full color behind the text. */
+/* Page headings stay directly on the page in light mode. The prior scene-tinted
+   rectangle competed with the title and made the photo read as UI chrome. */
 html.light .heading-backdrop {
-  --heading-start: #a7bbd8;
-  --heading-middle: #b0b1d3;
-  --heading-end: #9ebdc9;
-  --heading-shadow: #576689;
-  position: relative;
-  isolation: isolate;
-}
-
-html.light.tod-sunrise .heading-backdrop {
-  --heading-start: #edbd92;
-  --heading-middle: #dfb6ac;
-  --heading-end: #b6bdcf;
-  --heading-shadow: #9e7162;
-}
-
-html.light.tod-afternoon .heading-backdrop {
-  --heading-start: #b3cbbb;
-  --heading-middle: #b2ccdc;
-  --heading-end: #b7bed6;
-  --heading-shadow: #557e87;
-}
-
-html.light.tod-sunset .heading-backdrop {
-  --heading-start: #edb58e;
-  --heading-middle: #dfaea6;
-  --heading-end: #c1b1cd;
-  --heading-shadow: #9c6874;
+  position: static;
 }
 
 html.light:not(.atmosphere-off) .heading-backdrop::before {
-  content: "";
-  position: absolute;
-  inset: -16px -12px;
-  z-index: -1;
-  pointer-events: none;
-  border: 0;
-  border-radius: 0;
-  background: linear-gradient(
-    110deg,
-    color-mix(in srgb, var(--heading-start) 92%, transparent),
-    color-mix(in srgb, var(--heading-middle) 90%, transparent) 52%,
-    color-mix(in srgb, var(--heading-end) 90%, transparent)
-  );
-  box-shadow: 0 5px 18px -7px color-mix(in srgb, var(--heading-shadow) 38%, transparent);
-  mask-image: linear-gradient(
-    to bottom,
-    transparent,
-    #000 14px,
-    #000 calc(100% - 14px),
-    transparent
-  );
+  content: none;
 }
 
-html.light .page-heading-title,
+html.light .page-heading-title {
+  color: #f7fbff;
+  text-shadow: 0 1px 2px rgba(7, 20, 38, 0.24);
+}
+
+html.light .page-heading-subtitle {
+  color: #dce8f5;
+  text-shadow: 0 1px 2px rgba(7, 20, 38, 0.2);
+}
+
 html.light .greeting-title {
   color: #172027;
   text-shadow: none;
 }
 
-html.light .page-heading-subtitle,
 html.light .greeting-subtitle {
   color: #293844;
   text-shadow: none;
@@ -485,14 +456,18 @@ html.light .greeting-subtitle {
 }
 
 html.light .focus-hero {
-  background:
-    linear-gradient(128deg, rgba(251, 253, 255, 0.43), rgba(213, 202, 255, 0.24) 48%, rgba(177, 224, 255, 0.29));
-  border-color: rgba(255, 255, 255, 0.78);
-  backdrop-filter: blur(34px) saturate(1.38) brightness(1.04);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  border-color: var(--line);
+  backdrop-filter: none;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.82),
-    inset 0 -1px 0 rgba(92, 113, 190, 0.12),
-    0 24px 58px -38px rgba(61, 87, 165, 0.5);
+    0 1px 0 0 rgba(255, 255, 255, 0.6) inset,
+    0 18px 40px -24px rgba(31, 49, 74, 0.2);
+}
+
+html.light .focus-hero::before,
+html.light .focus-hero::after,
+html.light .focus-hero-glow {
+  display: none;
 }
 
 /* Dark mode keeps the focus panel in the same quiet material family as every
