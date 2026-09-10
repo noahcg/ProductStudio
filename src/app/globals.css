@@ -245,6 +245,88 @@ html.light:not(.atmosphere-off) .atmosphere {
   display: block;
 }
 
+/* The roadmap is a working surface, not a backdrop for the studio imagery.
+   Keep the photo out of this route so planning content has a stable, readable
+   field at every time of day and in either theme. */
+body:has(.roadmap-workspace) .atmosphere {
+  display: none;
+}
+
+.roadmap-workspace {
+  min-height: calc(100vh - 116px);
+  padding-top: 0.5rem;
+}
+
+.roadmap-workspace .page-heading-title {
+  font-size: clamp(2rem, 3vw, 2.5rem);
+}
+
+.roadmap-workspace .page-heading-subtitle {
+  max-width: 48rem;
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.roadmap-toolbar {
+  width: min(100%, 22rem);
+}
+
+.roadmap-select {
+  min-height: 3rem;
+  background-color: var(--surface-2);
+}
+
+.roadmap-board {
+  align-items: start;
+}
+
+.roadmap-lane {
+  min-height: 22rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--bg-elevated);
+}
+
+.roadmap-column-heading {
+  min-height: 2rem;
+}
+
+.roadmap-count {
+  display: grid;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+
+.roadmap-column-empty {
+  min-height: 7rem;
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+}
+
+.roadmap-add {
+  background: transparent;
+}
+
+.roadmap-empty {
+  min-height: 18rem;
+  background: var(--bg-elevated);
+}
+
+html.light .roadmap-workspace {
+  background: transparent;
+}
+
+html.light .roadmap-lane,
+html.light .roadmap-empty {
+  background: var(--bg-elevated);
+  backdrop-filter: none;
+}
+
 /* Light theme leaves the room photo unobscured. Page-level text gets its own
    treatment below instead of relying on a full-screen scrim. */
 html.light .atmosphere::after {

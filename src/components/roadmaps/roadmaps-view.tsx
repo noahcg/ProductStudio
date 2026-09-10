@@ -148,7 +148,7 @@ export function RoadmapsView({
   const productName = products.find((product) => product.id === productId)?.name;
 
   return (
-    <div>
+    <section className="roadmap-workspace">
       <PageHeading
         title="Product roadmap"
         subtitle="Set the direction for a product, then link initiatives to delivery projects when work begins."
@@ -159,13 +159,13 @@ export function RoadmapsView({
         }
       />
 
-      <div className="mb-5">
+      <div className="roadmap-toolbar mb-8">
         <label className="block w-full sm:w-72">
-          <span className="mb-1.5 block text-xs font-medium text-muted">Viewing roadmap for</span>
+          <span className="mb-2 block text-sm font-medium text-muted">Viewing roadmap for</span>
           <Select
             value={productId}
             onChange={(e) => setProductId(e.target.value)}
-            className="text-base font-medium"
+            className="roadmap-select text-base font-medium"
           >
             {products.map((product) => (
               <option key={product.id} value={product.id}>
@@ -177,8 +177,8 @@ export function RoadmapsView({
       </div>
 
       {boardEmpty ? (
-        <Card className="flex flex-col items-center justify-center gap-4 p-12 text-center">
-          <p className="text-sm text-muted">
+        <Card className="roadmap-empty flex flex-col items-center justify-center gap-4 p-12 text-center">
+          <p className="text-base text-muted">
             {items.length === 0
               ? "No initiatives yet. Set the first direction for this product."
               : `No initiatives for ${productName} yet.`}
@@ -188,17 +188,17 @@ export function RoadmapsView({
           </Button>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <div className="roadmap-board grid grid-cols-1 gap-5 lg:grid-cols-3">
           {COLUMNS.map((col, colIdx) => {
             const colItems = inColumn(filtered, col);
             const meta = COLUMN_META[col];
             return (
-              <div key={col} className="flex flex-col">
-                <div className="mb-3 flex items-center gap-2">
+              <div key={col} className="roadmap-lane flex flex-col">
+                <div className="roadmap-column-heading mb-3 flex items-center gap-2">
                   <span className={cn("h-2.5 w-2.5 rounded-full", meta.dot)} />
-                  <h2 className="text-sm font-semibold uppercase tracking-wide text-fg">{meta.title}</h2>
-                  <span className="text-xs text-faint">· {meta.hint}</span>
-                  <span className="ml-auto text-xs font-medium text-muted">{colItems.length}</span>
+                  <h2 className="text-sm font-bold uppercase tracking-wide text-fg">{meta.title}</h2>
+                  <span className="text-sm text-muted">{meta.hint}</span>
+                  <span className="roadmap-count ml-auto text-sm font-semibold text-muted">{colItems.length}</span>
                 </div>
 
                 <div className="flex flex-col gap-3">
@@ -219,13 +219,13 @@ export function RoadmapsView({
                     />
                   ))}
                   {colItems.length === 0 && (
-                    <div className="rounded-xl border border-dashed border-line p-6 text-center text-xs text-faint">
-                      Nothing here yet
+                    <div className="roadmap-column-empty rounded-xl border border-dashed border-line p-6 text-center text-sm text-muted">
+                      No initiatives in this lane
                     </div>
                   )}
                   <button
                     onClick={() => setModal({ mode: "new", column: col })}
-                    className="flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-line py-2 text-xs text-faint transition-colors hover:border-line-strong hover:text-muted"
+                    className="roadmap-add flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-line py-2.5 text-sm font-medium text-muted transition-colors hover:border-accent/60 hover:text-fg"
                   >
                     <Plus className="h-3.5 w-3.5" /> Add initiative
                   </button>
@@ -251,7 +251,7 @@ export function RoadmapsView({
         onSubmit={submit}
         onClose={close}
       />
-    </div>
+    </section>
   );
 }
 
