@@ -54,16 +54,28 @@ export function AppHeader({
     <header className="sticky top-0 z-40 border-b border-line bg-bg/80 backdrop-blur-xl">
       <div className="mx-auto flex h-[68px] w-full max-w-[1400px] items-center gap-6 px-6">
         {/* Logo */}
-        <Link href="/" className="brand-mark relative isolate shrink-0" aria-label="Product Studio home">
+        <Link
+          href="/"
+          className="brand-mark relative isolate flex shrink-0 items-center gap-3"
+          aria-label="Noah Glushien Product Studio home"
+        >
           <Image
-            src="/images/ng-studio.png?v=20260909-2"
-            alt="Noah Glushien Product Studio"
-            width={2172}
-            height={724}
-            sizes="160px"
-            priority
+            src="/images/ng-studio-cards.png"
+            alt=""
+            width={530}
+            height={600}
+            unoptimized
             className="h-[60px] w-auto"
           />
+          <span className="brand-divider h-10 w-px shrink-0" aria-hidden="true" />
+          <span className="flex flex-col leading-none">
+            <span className="brand-name text-[19px] font-extrabold tracking-tight">
+              Noah Glushien
+            </span>
+            <span className="brand-subtitle mt-1.5 text-[10px] font-bold tracking-[0.27em]">
+              PRODUCT STUDIO
+            </span>
+          </span>
         </Link>
 
         {/* Nav */}
