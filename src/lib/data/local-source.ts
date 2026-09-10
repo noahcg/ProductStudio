@@ -36,7 +36,7 @@ import { expenses, spendTrend } from "./spend";
 import { domains } from "./domains";
 
 interface LocalStore {
-  version: 2;
+  version: 3;
   products: Product[];
   projects: Project[];
   milestones: Milestone[];
@@ -61,7 +61,7 @@ const storePath = configuredDataDir
 
 function seedStore(): LocalStore {
   return clone({
-    version: 2,
+    version: 3,
     products,
     projects,
     milestones,
@@ -119,7 +119,12 @@ function normalizeStore(store: LocalStore): LocalStore {
     }));
   }
   store.products = store.products.map((product) => ({ ...product, integrations: product.integrations ?? {} }));
-  store.version = 2;
+  const projectProductIds = new Map(store.projects.map((project) => [project.id, project.productId]));
+  store.roadmap = store.roadmap.map((item) => ({
+    ...item,
+    productId: item.productId ?? (item.projectId ? projectProductIds.get(item.projectId) : undefined) ?? store.products[0]?.id ?? "",
+  }));
+  store.version = 3;
   const fallbackDate = studioNow().toISOString();
   store.tasks = store.tasks.map((task) => ({
     ...task,
@@ -200,6 +205,7 @@ function normalizeTaskSource(input: TaskInput): Task["source"] {
 
 function fromRoadmapInput(input: RoadmapInput): Omit<RoadmapItem, "id" | "sortOrder"> {
   return {
+    productId: input.productId,
     projectId: input.projectId,
     title: input.title,
     description: input.description?.trim() || undefined,
@@ -355,7 +361,9 @@ export const localSource: DataSource = {
       store.projects = store.projects.filter((p) => p.id !== id);
       store.milestones = store.milestones.filter((m) => m.projectId !== id);
       store.tasks = store.tasks.filter((t) => t.projectId !== id);
-      store.roadmap = store.roadmap.filter((r) => r.projectId !== id);
+      store.roadmap = store.roadmap.map((item) =>
+        item.projectId === id ? { ...item, projectId: undefined, milestoneId: undefined } : item
+      );
       store.decisions = store.decisions.filter((d) => d.projectId !== id);
       store.activity = store.activity.filter((a) => a.projectId !== id);
       store.signals = store.signals.filter((s) => s.projectId !== id);

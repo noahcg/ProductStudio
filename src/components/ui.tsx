@@ -168,8 +168,20 @@ export function Textarea({ className, ...props }: React.ComponentProps<"textarea
   return <textarea className={cn(fieldClass, "resize-y", className)} {...props} />;
 }
 
-export function Select({ className, ...props }: React.ComponentProps<"select">) {
-  return <select className={cn(fieldClass, "appearance-none", className)} {...props} />;
+export function Select({ className, style, ...props }: React.ComponentProps<"select">) {
+  return (
+    <select
+      className={cn(fieldClass, "appearance-none bg-no-repeat pr-10", className)}
+      style={{
+        backgroundImage:
+          "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E\")",
+        backgroundPosition: "right 0.75rem center",
+        backgroundSize: "1rem",
+        ...style,
+      }}
+      {...props}
+    />
+  );
 }
 
 export function Field({

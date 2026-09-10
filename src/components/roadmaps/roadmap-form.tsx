@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import type {
+  Product,
   RoadmapItem,
   RoadmapInput,
   RoadmapColumn,
@@ -28,7 +29,9 @@ const EFFORTS: { value: Effort; label: string }[] = [
 export function RoadmapForm({
   open,
   initial,
+  defaultProductId,
   defaultColumn = "now",
+  products,
   projects,
   pending,
   error,
@@ -37,14 +40,17 @@ export function RoadmapForm({
 }: {
   open: boolean;
   initial?: RoadmapItem | null;
+  defaultProductId?: string;
   defaultColumn?: RoadmapColumn;
-  projects: { id: string; name: string }[];
+  products: Product[];
+  projects: { id: string; name: string; productId: string }[];
   pending: boolean;
   error?: string | null;
   onSubmit: (input: RoadmapInput) => void;
   onClose: () => void;
 }) {
-  const [projectId, setProjectId] = useState(initial?.projectId ?? projects[0]?.id ?? "");
+  const [productId, setProductId] = useState(initial?.productId ?? defaultProductId ?? products[0]?.id ?? "");
+  const [projectId, setProjectId] = useState(initial?.projectId ?? "");
   const [title, setTitle] = useState(initial?.title ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [column, setColumn] = useState<RoadmapColumn>(initial?.column ?? defaultColumn);
@@ -58,6 +64,7 @@ export function RoadmapForm({
   function submit(e: React.FormEvent) {
     e.preventDefault();
     onSubmit({
+      productId,
       projectId,
       title,
       description,
@@ -79,7 +86,7 @@ export function RoadmapForm({
       <Card className="my-4 w-full max-w-2xl p-6">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-fg">
-            {initial ? "Edit roadmap item" : "New roadmap item"}
+            {initial ? "Edit initiative" : "New initiative"}
           </h2>
           <button
             type="button"
@@ -93,9 +100,19 @@ export function RoadmapForm({
 
         <form onSubmit={submit} className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="Project">
+            <Field label="Product">
+              <Select value={productId} onChange={(e) => { setProductId(e.target.value); setProjectId(""); }}>
+                {products.map((product) => (
+                  <option key={product.id} value={product.id}>
+                    {product.name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Delivery project (optional)">
               <Select value={projectId} onChange={(e) => setProjectId(e.target.value)}>
-                {projects.map((p) => (
+                <option value="">Not linked yet</option>
+                {projects.filter((project) => project.productId === productId).map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
                   </option>
@@ -171,7 +188,7 @@ export function RoadmapForm({
               Cancel
             </Button>
             <Button type="submit" variant="primary" disabled={pending}>
-              {pending ? "Saving…" : initial ? "Save changes" : "Create item"}
+              {pending ? "Saving…" : initial ? "Save changes" : "Create initiative"}
             </Button>
           </div>
         </form>

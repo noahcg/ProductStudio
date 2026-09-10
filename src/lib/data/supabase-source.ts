@@ -124,7 +124,8 @@ function mapTaskSource(r: Row): Task["source"] {
 function mapRoadmap(r: Row): RoadmapItem {
   return {
     id: s(r.id),
-    projectId: nested(r, "project") ?? "",
+    productId: nested(r, "product") ?? "",
+    projectId: nested(r, "project"),
     milestoneId: nested(r, "milestone"),
     title: s(r.title),
     description: opt(r.description),
@@ -248,7 +249,7 @@ export function supabaseSource(sb: SupabaseClient): DataSource {
     },
     async roadmap() {
       return (
-        await rows("roadmap_items", "*, project:projects(slug), milestone:milestones(slug)", { column: "sort_order" })
+        await rows("roadmap_items", "*, product:products(slug), project:projects(slug), milestone:milestones(slug)", { column: "sort_order" })
       ).map(mapRoadmap);
     },
     async decisions() {
@@ -431,6 +432,8 @@ export function supabaseSource(sb: SupabaseClient): DataSource {
 
     async createRoadmapItem(input: RoadmapInput): Promise<RoadmapItem> {
       const project_id = await projectUuid(sb, input.projectId);
+      const product_id = await productUuid(sb, input.productId);
+      if (!product_id) throw new Error(`Product ${input.productId} was not found.`);
       const { data: maxRow } = await sb
         .from("roadmap_items")
         .select("sort_order")
@@ -441,8 +444,8 @@ export function supabaseSource(sb: SupabaseClient): DataSource {
 
       const { data, error } = await sb
         .from("roadmap_items")
-        .insert({ ...roadmapPayload(input), project_id, sort_order })
-        .select("*, project:projects(slug), milestone:milestones(slug)")
+        .insert({ ...roadmapPayload(input), product_id, project_id, sort_order })
+        .select("*, product:products(slug), project:projects(slug), milestone:milestones(slug)")
         .single();
       if (error) throw error;
       return mapRoadmap(data as unknown as Row);
@@ -450,11 +453,13 @@ export function supabaseSource(sb: SupabaseClient): DataSource {
 
     async updateRoadmapItem(id: string, input: RoadmapInput): Promise<RoadmapItem> {
       const project_id = await projectUuid(sb, input.projectId);
+      const product_id = await productUuid(sb, input.productId);
+      if (!product_id) throw new Error(`Product ${input.productId} was not found.`);
       const { data, error } = await sb
         .from("roadmap_items")
-        .update({ ...roadmapPayload(input), project_id })
+        .update({ ...roadmapPayload(input), product_id, project_id })
         .eq("id", id)
-        .select("*, project:projects(slug), milestone:milestones(slug)")
+        .select("*, product:products(slug), project:projects(slug), milestone:milestones(slug)")
         .single();
       if (error) throw error;
       return mapRoadmap(data as unknown as Row);

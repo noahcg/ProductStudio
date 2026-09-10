@@ -14,7 +14,7 @@ import { moveItem, reorderItem } from "@/components/roadmaps/roadmap-ops";
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
 function validate(input: RoadmapInput): string | null {
-  if (!input.projectId) return "A project is required.";
+  if (!input.productId) return "A product is required.";
   if (!input.title?.trim()) return "Title is required.";
   return null;
 }

@@ -170,8 +170,8 @@ export function computeSignals(input: SignalsInput, now: Date = studioNow()): Ge
     }
 
     // --- Roadmap ---
-    const nowItems = input.roadmap.filter((r) => r.projectId === p.id && r.column === "now");
-    const nextItems = input.roadmap.filter((r) => r.projectId === p.id && r.column === "next");
+    const nowItems = input.roadmap.filter((r) => r.productId === p.productId && r.column === "now");
+    const nextItems = input.roadmap.filter((r) => r.productId === p.productId && r.column === "next");
     if (nowItems.length === 0) {
       sig(
         "roadmap_no_now",

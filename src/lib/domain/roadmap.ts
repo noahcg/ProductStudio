@@ -1,4 +1,4 @@
-import type { RoadmapItemId, ProjectId, MilestoneId } from "./ids";
+import type { ProductId, RoadmapItemId, ProjectId, MilestoneId } from "./ids";
 
 export type RoadmapColumn = "now" | "next" | "later";
 
@@ -9,13 +9,14 @@ export type RoadmapPriority = "High" | "Medium" | "Low";
 export type RoadmapStatus = "planned" | "in_progress" | "done";
 
 /**
- * A planning item on a project's Now / Next / Later roadmap. Owned by a
- * project; may correspond to a milestone. `sortOrder` is the mutable
- * within-column ordering key (move/reorder operations change column + sortOrder).
+ * A strategic initiative on a product's Now / Next / Later roadmap. It may
+ * optionally link to a delivery project and its milestone. `sortOrder` is the
+ * mutable within-column ordering key (move/reorder operations change column + sortOrder).
  */
 export interface RoadmapItem {
   id: RoadmapItemId;
-  projectId: ProjectId;
+  productId: ProductId;
+  projectId?: ProjectId;
   milestoneId?: MilestoneId;
   title: string;
   description?: string;
@@ -30,7 +31,8 @@ export interface RoadmapItem {
 
 /** Fields accepted when creating/editing a roadmap item. */
 export interface RoadmapInput {
-  projectId: ProjectId;
+  productId: ProductId;
+  projectId?: ProjectId;
   title: string;
   description?: string;
   column: RoadmapColumn;

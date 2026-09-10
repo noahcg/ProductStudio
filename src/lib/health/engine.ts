@@ -148,9 +148,9 @@ function projectHealth(project: Project, input: HealthInput, now: Date): Project
   }
 
   // ---- Planning: roadmap quality ----
-  const nowCount = input.roadmap.filter((r) => r.projectId === project.id && r.column === "now").length;
-  const nextCount = input.roadmap.filter((r) => r.projectId === project.id && r.column === "next").length;
-  const laterCount = input.roadmap.filter((r) => r.projectId === project.id && r.column === "later").length;
+  const nowCount = input.roadmap.filter((r) => r.productId === project.productId && r.column === "now").length;
+  const nextCount = input.roadmap.filter((r) => r.productId === project.productId && r.column === "next").length;
+  const laterCount = input.roadmap.filter((r) => r.productId === project.productId && r.column === "later").length;
   const roadmapTotal = nowCount + nextCount + laterCount;
   const planning = clamp(10 + (nowCount > 0 ? 45 : 0) + (nextCount > 0 ? 30 : 0) + (laterCount > 0 ? 15 : 0));
   const planningReason: HealthReason =

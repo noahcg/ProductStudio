@@ -132,7 +132,7 @@ function scoreProject(
     add(`${stats.completed} task${plural(stats.completed)} completed`, Math.min(stats.completed * W.completedTask, W.completedTaskCap));
   }
 
-  const nowCount = input.roadmap.filter((r) => r.projectId === project.id && r.column === "now").length;
+  const nowCount = input.roadmap.filter((r) => r.productId === project.productId && r.column === "now").length;
   if (nowCount > 0) {
     add(`${nowCount} item${plural(nowCount)} in Now`, Math.min(nowCount * W.nowItem, W.nowItemCap));
   }

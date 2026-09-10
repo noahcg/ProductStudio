@@ -148,7 +148,9 @@ export const mockSource: DataSource = {
     removeWhere(projects, (p) => p.id === id);
     removeWhere(milestones, (m) => m.projectId === id);
     removeWhere(tasks, (t) => t.projectId === id);
-    removeWhere(roadmap, (r) => r.projectId === id);
+    for (let i = 0; i < roadmap.length; i += 1) {
+      if (roadmap[i].projectId === id) roadmap[i] = { ...roadmap[i], projectId: undefined, milestoneId: undefined };
+    }
     removeWhere(decisions, (d) => d.projectId === id);
     removeWhere(activity, (a) => a.projectId === id);
     removeWhere(signals, (s) => s.projectId === id);
@@ -297,6 +299,7 @@ function nextSortOrder(items: { sortOrder: number }[]): number {
 
 function fromRoadmapInput(input: RoadmapInput): Omit<RoadmapItem, "id" | "sortOrder"> {
   return {
+    productId: input.productId,
     projectId: input.projectId,
     title: input.title,
     description: input.description?.trim() || undefined,

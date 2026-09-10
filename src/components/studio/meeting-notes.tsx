@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState, useTransition } from "react";
-import { Loader2, Mic, Plus, Save, Square } from "lucide-react";
+import { Loader2, Mic, Pencil, Save, Square, Trash2, X } from "lucide-react";
 import type { Project } from "@/lib/domain";
 import { Button, Card, Textarea } from "@/components/ui";
 import { cn } from "@/lib/utils";
@@ -61,6 +61,7 @@ export function MeetingNotes({
   const notesValue = useLocalStorageValue(key, "[]");
   const notes = useMemo(() => parseNotes(notesValue), [notesValue]);
   const [body, setBody] = useState("");
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [recording, setRecording] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,6 +79,19 @@ export function MeetingNotes({
     const trimmed = body.trim();
     if (!trimmed || !selectedProject) return;
     const firstLine = trimmed.split("\n").find(Boolean) ?? "Meeting note";
+
+    if (editingNoteId) {
+      const next = notes.map((note) =>
+        note.id === editingNoteId
+          ? { ...note, title: firstLine.slice(0, 64), body: trimmed }
+          : note
+      );
+      writeNotes(next);
+      setBody("");
+      setEditingNoteId(null);
+      return;
+    }
+
     const note: StoredNote = {
       id: crypto.randomUUID(),
       projectId: selectedProject.id,
@@ -90,6 +104,23 @@ export function MeetingNotes({
     const next = [note, ...notes];
     writeNotes(next);
     setBody("");
+  }
+
+  function editNote(note: StoredNote) {
+    setBody(note.body);
+    setEditingNoteId(note.id);
+    setError(null);
+  }
+
+  function cancelEditing() {
+    setBody("");
+    setEditingNoteId(null);
+  }
+
+  function deleteNote(note: StoredNote) {
+    if (!window.confirm(`Delete “${note.title}”? This cannot be undone.`)) return;
+    writeNotes(notes.filter((storedNote) => storedNote.id !== note.id));
+    if (editingNoteId === note.id) cancelEditing();
   }
 
   async function startRecording() {
@@ -232,11 +263,15 @@ export function MeetingNotes({
           placeholder="Meeting notes, client context, decisions, follow-ups..."
         />
         <div className="mt-3 flex items-center justify-between gap-3">
-          <Button variant="ghost" className="text-xs" onClick={() => setBody("")}>
-            <Plus className="h-3.5 w-3.5" /> New
-          </Button>
+          {editingNoteId ? (
+            <Button variant="ghost" className="text-xs" onClick={cancelEditing}>
+              <X className="h-3.5 w-3.5" /> Cancel
+            </Button>
+          ) : (
+            <span />
+          )}
           <Button variant="primary" className="text-xs" onClick={saveNote} disabled={!body.trim()}>
-            <Save className="h-3.5 w-3.5" /> Save note
+            <Save className="h-3.5 w-3.5" /> {editingNoteId ? "Save changes" : "Save note"}
           </Button>
         </div>
         {error && <p className="mt-3 text-xs text-danger">{error}</p>}
@@ -259,6 +294,22 @@ export function MeetingNotes({
                 )}
               </summary>
               <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-muted">{note.body}</p>
+              <div className="mt-2 flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  className="h-auto px-0 py-1 text-xs"
+                  onClick={() => editNote(note)}
+                >
+                  <Pencil className="h-3.5 w-3.5" /> Edit note
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="h-auto px-0 py-1 text-xs text-danger hover:text-danger"
+                  onClick={() => deleteNote(note)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> Delete
+                </Button>
+              </div>
             </details>
           ))}
         </div>

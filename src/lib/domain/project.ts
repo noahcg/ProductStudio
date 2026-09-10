@@ -7,8 +7,8 @@ export type ProjectAccent = "amber" | "violet" | "blue" | "orange" | "green" | "
 export type ProjectIcon = "chef" | "shirt" | "dumbbell" | "sofa";
 
 /**
- * A Project belongs to one Product and owns its milestones, tasks, roadmap
- * items, decisions, activity, expenses, domains, and signals — each of those
+ * A Project belongs to one Product and owns its milestones, tasks, decisions,
+ * activity, expenses, domains, and signals — each of those
  * references this project by `id`.
  *
  * A few fields here (`nextMilestone`, `openTasks`, `blockers`,

@@ -16,6 +16,7 @@ import type {
   RoadmapColumn,
   RoadmapPriority,
   RoadmapStatus,
+  Product,
   Project,
 } from "@/lib/domain";
 import { cn } from "@/lib/utils";
@@ -61,12 +62,14 @@ type Modal =
 
 export function RoadmapsView({
   items,
+  products,
   projects,
 }: {
   items: RoadmapItem[];
-  projects: Pick<Project, "id" | "name" | "icon" | "accent">[];
+  products: Product[];
+  projects: Project[];
 }) {
-  const [projectFilter, setProjectFilter] = useState("all");
+  const [productId, setProductId] = useState(products[0]?.id ?? "");
   const [modal, setModal] = useState<Modal>({ mode: "closed" });
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -87,9 +90,8 @@ export function RoadmapsView({
     }
   );
 
-  const projectMeta = (id: string) => projects.find((p) => p.id === id);
-  const filtered =
-    projectFilter === "all" ? optimistic : optimistic.filter((i) => i.projectId === projectFilter);
+  const projectMeta = (id?: string) => projects.find((p) => p.id === id);
+  const filtered = optimistic.filter((item) => item.productId === productId);
 
   function close() {
     setModal({ mode: "closed" });
@@ -143,44 +145,46 @@ export function RoadmapsView({
   }
 
   const boardEmpty = filtered.length === 0;
-  const filterName = projectFilter !== "all" ? projectMeta(projectFilter)?.name : undefined;
+  const productName = products.find((product) => product.id === productId)?.name;
 
   return (
     <div>
       <PageHeading
-        title="Roadmaps"
-        subtitle="Now / Next / Later planning across every product in the studio."
+        title="Product roadmap"
+        subtitle="Set the direction for a product, then link initiatives to delivery projects when work begins."
         right={
           <Button variant="primary" onClick={() => setModal({ mode: "new", column: "now" })}>
-            <Plus className="h-4 w-4" /> New item
+            <Plus className="h-4 w-4" /> New initiative
           </Button>
         }
       />
 
       <div className="mb-5">
-        <Select
-          value={projectFilter}
-          onChange={(e) => setProjectFilter(e.target.value)}
-          className="sm:w-56"
-        >
-          <option value="all">All projects</option>
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </Select>
+        <label className="block w-full sm:w-72">
+          <span className="mb-1.5 block text-xs font-medium text-muted">Viewing roadmap for</span>
+          <Select
+            value={productId}
+            onChange={(e) => setProductId(e.target.value)}
+            className="text-base font-medium"
+          >
+            {products.map((product) => (
+              <option key={product.id} value={product.id}>
+                {product.name}
+              </option>
+            ))}
+          </Select>
+        </label>
       </div>
 
       {boardEmpty ? (
         <Card className="flex flex-col items-center justify-center gap-4 p-12 text-center">
           <p className="text-sm text-muted">
             {items.length === 0
-              ? "No roadmap items yet. Plan your first item."
-              : `No roadmap items for ${filterName} yet.`}
+              ? "No initiatives yet. Set the first direction for this product."
+              : `No initiatives for ${productName} yet.`}
           </p>
           <Button variant="primary" onClick={() => setModal({ mode: "new", column: "now" })}>
-            <Plus className="h-4 w-4" /> New item
+            <Plus className="h-4 w-4" /> New initiative
           </Button>
         </Card>
       ) : (
@@ -223,7 +227,7 @@ export function RoadmapsView({
                     onClick={() => setModal({ mode: "new", column: col })}
                     className="flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-line py-2 text-xs text-faint transition-colors hover:border-line-strong hover:text-muted"
                   >
-                    <Plus className="h-3.5 w-3.5" /> Add to {meta.title}
+                    <Plus className="h-3.5 w-3.5" /> Add initiative
                   </button>
                 </div>
               </div>
@@ -235,10 +239,13 @@ export function RoadmapsView({
       {error && <p className="mt-4 text-sm text-danger">{error}</p>}
 
       <RoadmapForm
+        key={modal.mode === "edit" ? modal.item.id : `${modal.mode}-${productId}-${modal.mode === "new" ? modal.column : ""}`}
         open={modal.mode !== "closed"}
         initial={modal.mode === "edit" ? modal.item : null}
+        defaultProductId={productId}
         defaultColumn={modal.mode === "new" ? modal.column : "now"}
-        projects={projects.map((p) => ({ id: p.id, name: p.name }))}
+        products={products}
+        projects={projects.map((p) => ({ id: p.id, name: p.name, productId: p.productId }))}
         pending={pending}
         error={error}
         onSubmit={submit}
@@ -288,7 +295,7 @@ function RoadmapCard({
               <Icon className="h-3.5 w-3.5 text-fg" />
             </span>
           )}
-          <span className="text-xs text-muted">{project?.name ?? "—"}</span>
+          <span className="text-xs text-muted">{project ? `Delivery: ${project.name}` : "Not linked to delivery"}</span>
         </div>
         <div className="flex items-center gap-1">
           {item.tag === "milestone" && <Badge tone="violet">Milestone</Badge>}
