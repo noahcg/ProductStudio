@@ -18,6 +18,7 @@ import type {
   Signal,
   Integration,
   Expense,
+  ExpenseInput,
   Domain,
   SpendTrendPoint,
 } from "../domain";
@@ -181,11 +182,12 @@ function mapSignal(r: Row): Signal {
 function mapExpense(r: Row): Expense {
   return {
     id: s(r.id),
-    projectId: nested(r, "project"),
+    productId: nested(r, "product"),
     integration: (opt(r.integration_key) as Expense["integration"]) ?? undefined,
     service: s(r.service),
     category: r.category as Expense["category"],
     amount: Number(r.amount ?? 0),
+    billingPeriod: r.billing_period === "yearly" ? "yearly" : "monthly",
   };
 }
 
@@ -267,7 +269,7 @@ export function supabaseSource(sb: SupabaseClient): DataSource {
       return (await rows("integrations", "*", { column: "position" })).map(mapIntegration);
     },
     async expenses() {
-      return (await rows("expenses", "*, project:projects(slug)", { column: "position" })).map(mapExpense);
+      return (await rows("expenses", "*, product:products(slug)", { column: "position" })).map(mapExpense);
     },
     async domains() {
       return (await rows("domains", "*, project:projects(slug)", { column: "name" })).map(mapDomain);
@@ -387,6 +389,53 @@ export function supabaseSource(sb: SupabaseClient): DataSource {
     },
     async deleteProject(id: string): Promise<void> {
       const { error } = await sb.from("projects").delete().eq("slug", id);
+      if (error) throw error;
+    },
+
+    // ---- Writes (Money) ----
+
+    async createExpense(input: ExpenseInput): Promise<Expense> {
+      const product_id = await productUuid(sb, input.productId);
+      const { data: maxRow } = await sb
+        .from("expenses")
+        .select("position")
+        .order("position", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const position = ((maxRow?.position as number | undefined) ?? 0) + 1;
+      const { data, error } = await sb
+        .from("expenses")
+        .insert({ service: input.service.trim(), category: input.category, amount: input.amount, billing_period: input.billingPeriod, product_id, position })
+        .select("*, product:products(slug)")
+        .single();
+      if (error) throw error;
+      return mapExpense(data as unknown as Row);
+    },
+    async updateExpense(id: string, input: ExpenseInput): Promise<Expense> {
+      const product_id = await productUuid(sb, input.productId);
+      const { data, error } = await sb
+        .from("expenses")
+        .update({ service: input.service.trim(), category: input.category, amount: input.amount, billing_period: input.billingPeriod, product_id })
+        .eq("id", id)
+        .select("*, product:products(slug)")
+        .single();
+      if (error) throw error;
+      return mapExpense(data as unknown as Row);
+    },
+    async deleteExpense(id: string): Promise<void> {
+      const { error } = await sb.from("expenses").delete().eq("id", id);
+      if (error) throw error;
+    },
+    async dismissedAttentionIds(): Promise<string[]> {
+      const { data, error } = await sb.from("attention_dismissals").select("item_id");
+      if (error) throw error;
+      return (data ?? []).map((row) => String(row.item_id));
+    },
+    async dismissAttentionItems(ids: string[]): Promise<void> {
+      if (!ids.length) return;
+      const { error } = await sb
+        .from("attention_dismissals")
+        .upsert(ids.map((item_id) => ({ item_id })), { onConflict: "item_id", ignoreDuplicates: true });
       if (error) throw error;
     },
 

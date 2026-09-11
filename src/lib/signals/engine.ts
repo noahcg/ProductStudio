@@ -7,6 +7,7 @@ import type {
   Activity,
   Expense,
 } from "../domain";
+import { monthlyAmount } from "../domain";
 import { now as studioNow } from "../clock";
 
 /**
@@ -272,13 +273,13 @@ export function computeSignals(input: SignalsInput, now: Date = studioNow()): Ge
   }
 
   // --- Money (studio-level) ---
-  const monthly = input.expenses.reduce((s, e) => s + e.amount, 0);
+  const monthly = input.expenses.reduce((s, e) => s + monthlyAmount(e), 0);
   if (monthly > TH.monthlyWarning) {
     sig("money_monthly_high", "warning", undefined, "Monthly spend is high", `Total monthly spend is ${money(monthly)}.`, "Review hosting and tooling costs for savings.", { amount: monthly });
   } else if (monthly > TH.monthlyWatch) {
     sig("money_monthly_high", "watch", undefined, "Monthly spend is climbing", `Total monthly spend is ${money(monthly)}.`, "Keep an eye on recurring costs.", { amount: monthly });
   }
-  const ai = input.expenses.filter((e) => e.category === "AI Tools").reduce((s, e) => s + e.amount, 0);
+  const ai = input.expenses.filter((e) => e.category === "AI Tools").reduce((s, e) => s + monthlyAmount(e), 0);
   if (ai > TH.aiWarning) {
     sig("money_ai_high", "warning", undefined, "AI spend is high", `AI tooling spend is ${money(ai)} this month.`, "Check OpenAI/Anthropic usage for runaway costs.", { amount: ai });
   } else if (ai > TH.aiWatch) {

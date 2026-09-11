@@ -34,6 +34,7 @@ import type {
   Activity,
   Alert,
   Expense,
+  ExpenseInput,
   SpendCategoryName,
   SpendTrendPoint,
   Spend,
@@ -41,6 +42,7 @@ import type {
   WeeklySummary,
   StudioStats,
 } from "../domain";
+import { monthlyAmount, suggestedSpendCategories } from "../domain";
 import { categoryColor } from "../constants/palette";
 import { computeFocus, type FocusInput, type FocusResult } from "../focus/engine";
 import { computeHealth, type ProjectHealth } from "../health/engine";
@@ -316,11 +318,15 @@ export async function getReviewHistory(): Promise<StoredReview[]> {
  */
 export async function getAttentionInbox(): Promise<AttentionInbox> {
   return withSource(async (s) => {
-    const data = await pipeline(s);
+    const [data, dismissedIds] = await Promise.all([pipeline(s), s.dismissedAttentionIds()]);
     const review = generateWeeklyReview(data, "7d");
     const names = new Map(data.projects.map((p) => [p.id, p.name]));
-    return buildAttentionInbox(data.generatedSignals, names, review);
+    return buildAttentionInbox(data.generatedSignals, names, review, dismissedIds);
   });
+}
+
+export async function dismissAttentionItems(ids: string[]): Promise<void> {
+  return withSource((s) => s.dismissAttentionItems(ids));
 }
 
 /** Full Focus Engine result — current focus, ranking, scores, reasons. */
@@ -435,21 +441,45 @@ const SPEND_CATEGORIES: { name: SpendCategoryName; color: string }[] = [
   { name: "Hosting", color: categoryColor.hosting },
   { name: "AI Tools", color: categoryColor.ai },
   { name: "Domains", color: categoryColor.domains },
+  { name: "Email", color: categoryColor.email },
 ];
+
+const customCategoryColors = ["#4f8cff", "#f97316", "#2dd4a7", "#7c5cff", "#f5a623"];
+
+function colorForCategory(category: SpendCategoryName): string {
+  const known = SPEND_CATEGORIES.find((item) => item.name === category);
+  if (known) return known.color;
+  const hash = [...category].reduce((value, character) => (value * 31 + character.charCodeAt(0)) >>> 0, 0);
+  return customCategoryColors[hash % customCategoryColors.length];
+}
 
 export async function getExpenses(): Promise<Expense[]> {
   return withSource((s) => s.expenses());
 }
 
+export async function createExpense(input: ExpenseInput): Promise<Expense> {
+  return withSource((s) => s.createExpense(input));
+}
+
+export async function updateExpense(id: string, input: ExpenseInput): Promise<Expense> {
+  return withSource((s) => s.updateExpense(id, input));
+}
+
+export async function deleteExpense(id: string): Promise<void> {
+  return withSource((s) => s.deleteExpense(id));
+}
+
 export async function getSpend(): Promise<Spend> {
   return withSource(async (s) => {
     const expenses = await s.expenses();
-    const categories = SPEND_CATEGORIES.map((c) => ({
-      label: c.name,
-      amount: round2(sum(expenses.filter((e) => e.category === c.name).map((e) => e.amount))),
-      color: c.color,
-    })).filter((c) => c.amount > 0);
-    return { categories, total: round2(sum(expenses.map((e) => e.amount))) };
+    const categoryNames = [...suggestedSpendCategories, ...expenses.map((expense) => expense.category)]
+      .filter((category, index, all) => all.indexOf(category) === index);
+    const categories = categoryNames.map((category) => ({
+      label: category,
+      amount: round2(sum(expenses.filter((expense) => expense.category === category).map(monthlyAmount))),
+      color: colorForCategory(category),
+    })).filter((category) => category.amount > 0);
+    return { categories, total: round2(sum(expenses.map(monthlyAmount))) };
   });
 }
 
@@ -474,7 +504,7 @@ export async function getStudioStats(): Promise<StudioStats> {
       products: products.length,
       active: projects.filter((p) => p.status === "Active").length,
       needsAttention: alerts.filter((a) => a.kind === "stale" || a.kind === "blocker").length,
-      monthlySpend: round2(sum(expenses.map((e) => e.amount))),
+      monthlySpend: round2(sum(expenses.map(monthlyAmount))),
     };
   });
 }

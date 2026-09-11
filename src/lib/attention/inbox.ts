@@ -59,11 +59,13 @@ const SEVERITY_RANK: Record<SignalSeverity, number> = { critical: 0, warning: 1,
 export function buildAttentionInbox(
   signals: GeneratedSignal[],
   projectNameById: Map<string, string>,
-  review?: WeeklyReview
+  review?: WeeklyReview,
+  dismissedIds: string[] = []
 ): AttentionInbox {
+  const dismissed = new Set(dismissedIds);
   // Only actionable severities surface in the inbox (info is never shown).
   const actionable = signals
-    .filter((s) => s.severity === "critical" || s.severity === "warning" || s.severity === "watch")
+    .filter((s) => (s.severity === "critical" || s.severity === "warning" || s.severity === "watch") && !dismissed.has(s.id))
     .sort(
       (a, b) =>
         SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity] ||
@@ -95,7 +97,7 @@ export function buildAttentionInbox(
   const watch = items.filter((i) => i.severity === "watch").length;
 
   // A quiet week's review isn't worth flagging.
-  const reviewReady = !!review && !review.quiet;
+  const reviewReady = !!review && !review.quiet && !dismissed.has("weekly-review");
 
   // Badge = actionable only: warning + critical signals (+ a ready review).
   const count = critical + warning + (reviewReady ? 1 : 0);

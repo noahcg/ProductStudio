@@ -21,4 +21,5 @@ export const categoryColor = {
   hosting: accentBar.green,
   ai: accentBar.violet,
   domains: accentBar.amber,
+  email: accentBar.teal,
 } as const;

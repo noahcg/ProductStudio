@@ -16,6 +16,7 @@ import type {
   Signal,
   Integration,
   Expense,
+  ExpenseInput,
   Domain,
   SslStatus,
   SpendTrendPoint,
@@ -83,6 +84,15 @@ export interface DataSource {
   deleteTask(id: string): Promise<void>;
   /** Quick status change (complete / reopen / block); manages completed_at. */
   setTaskStatus(id: string, status: TaskStatus): Promise<Task>;
+
+  // Writes (Money).
+  createExpense(input: ExpenseInput): Promise<Expense>;
+  updateExpense(id: string, input: ExpenseInput): Promise<Expense>;
+  deleteExpense(id: string): Promise<void>;
+
+  // Writes (Attention Inbox).
+  dismissedAttentionIds(): Promise<string[]>;
+  dismissAttentionItems(ids: string[]): Promise<void>;
 }
 
 /** Choose the active source: local JSON by default, Supabase when configured. */

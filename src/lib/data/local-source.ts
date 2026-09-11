@@ -6,6 +6,7 @@ import type {
   DecisionInput,
   Domain,
   Expense,
+  ExpenseInput,
   Integration,
   Milestone,
   Project,
@@ -49,6 +50,7 @@ interface LocalStore {
   expenses: Expense[];
   domains: Domain[];
   spendTrend: SpendTrendPoint[];
+  dismissedAttentionIds?: string[];
 }
 
 // Web development keeps its store in the project as before. The packaged
@@ -74,6 +76,7 @@ function seedStore(): LocalStore {
     expenses,
     domains,
     spendTrend,
+    dismissedAttentionIds: [],
   });
 }
 
@@ -119,11 +122,26 @@ function normalizeStore(store: LocalStore): LocalStore {
     }));
   }
   store.products = store.products.map((product) => ({ ...product, integrations: product.integrations ?? {} }));
+  store.dismissedAttentionIds = Array.isArray(store.dismissedAttentionIds)
+    ? store.dismissedAttentionIds.filter((id): id is string => typeof id === "string")
+    : [];
   const projectProductIds = new Map(store.projects.map((project) => [project.id, project.productId]));
   store.roadmap = store.roadmap.map((item) => ({
     ...item,
     productId: item.productId ?? (item.projectId ? projectProductIds.get(item.projectId) : undefined) ?? store.products[0]?.id ?? "",
   }));
+  // Expenses used to be attributed to individual projects. Preserve existing
+  // records by moving their ownership up to the parent product.
+  store.expenses = store.expenses.map((expense) => {
+    const legacy = expense as Expense & { projectId?: string };
+    const migrated: Expense & { projectId?: string } = {
+      ...expense,
+      productId: expense.productId ?? (legacy.projectId ? projectProductIds.get(legacy.projectId) : undefined),
+      billingPeriod: expense.billingPeriod === "yearly" ? "yearly" : "monthly",
+    };
+    delete migrated.projectId;
+    return migrated;
+  });
   store.version = 3;
   const fallbackDate = studioNow().toISOString();
   store.tasks = store.tasks.map((task) => ({
@@ -367,8 +385,51 @@ export const localSource: DataSource = {
       store.decisions = store.decisions.filter((d) => d.projectId !== id);
       store.activity = store.activity.filter((a) => a.projectId !== id);
       store.signals = store.signals.filter((s) => s.projectId !== id);
-      store.expenses = store.expenses.filter((e) => e.projectId !== id);
       store.domains = store.domains.filter((d) => d.projectId !== id);
+    });
+  },
+
+  async createExpense(input: ExpenseInput) {
+    return mutate((store) => {
+      const expense: Expense = {
+        id: newId("expense"),
+        productId: input.productId,
+        service: input.service.trim(),
+        category: input.category,
+        amount: input.amount,
+        billingPeriod: input.billingPeriod,
+      };
+      store.expenses.push(expense);
+      return expense;
+    });
+  },
+  async updateExpense(id: string, input: ExpenseInput) {
+    return mutate((store) => {
+      const index = store.expenses.findIndex((expense) => expense.id === id);
+      if (index === -1) throw new Error(`Expense ${id} not found`);
+      const expense: Expense = {
+        ...store.expenses[index],
+        productId: input.productId,
+        service: input.service.trim(),
+        category: input.category,
+        amount: input.amount,
+        billingPeriod: input.billingPeriod,
+      };
+      store.expenses[index] = expense;
+      return expense;
+    });
+  },
+  async deleteExpense(id: string) {
+    await mutate((store) => {
+      store.expenses = store.expenses.filter((expense) => expense.id !== id);
+    });
+  },
+  async dismissedAttentionIds() {
+    return (await readStore()).dismissedAttentionIds ?? [];
+  },
+  async dismissAttentionItems(ids: string[]) {
+    await mutate((store) => {
+      store.dismissedAttentionIds = [...new Set([...(store.dismissedAttentionIds ?? []), ...ids])];
     });
   },
 

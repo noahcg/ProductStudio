@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { Bell, ArrowRight, Compass, X } from "lucide-react";
 import type { AttentionInbox as Inbox, AttentionItem } from "@/lib/attention/inbox";
 import type { SignalSeverity } from "@/lib/signals/engine";
 import { severityMeta } from "@/components/signals/severity";
 import { cn, relativeTime } from "@/lib/utils";
-import { setLocalStorageValue, useLocalStorageValue } from "@/lib/client-store";
+import { dismissAttentionAction } from "@/app/attention-actions";
 
 const GROUPS: { severity: SignalSeverity; label: string }[] = [
   { severity: "critical", label: "Critical" },
@@ -15,21 +15,7 @@ const GROUPS: { severity: SignalSeverity; label: string }[] = [
   { severity: "watch", label: "Watch" },
 ];
 
-const DISMISSED_KEY = "product-studio-dismissed-attention";
 const REVIEW_ITEM_ID = "weekly-review";
-
-function parseDismissed(value: string): string[] {
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeDismissed(ids: string[]) {
-  setLocalStorageValue(DISMISSED_KEY, JSON.stringify(ids));
-}
 
 /**
  * Attention Inbox — the header bell. Opens a compact dropdown summarizing the
@@ -38,12 +24,12 @@ function writeDismissed(ids: string[]) {
  */
 export function AttentionInbox({ inbox }: { inbox: Inbox }) {
   const [open, setOpen] = useState(false);
-  const dismissedValue = useLocalStorageValue(DISMISSED_KEY, "[]");
-  const dismissed = useMemo(() => parseDismissed(dismissedValue), [dismissedValue]);
+  const [hiddenIds, setHiddenIds] = useState<string[]>([]);
+  const [, startTransition] = useTransition();
   const ref = useRef<HTMLDivElement>(null);
-  const dismissedSet = new Set(dismissed);
-  const visibleItems = inbox.items.filter((item) => !dismissedSet.has(item.id));
-  const reviewVisible = inbox.reviewReady && !dismissedSet.has(REVIEW_ITEM_ID);
+  const hiddenSet = new Set(hiddenIds);
+  const visibleItems = inbox.items.filter((item) => !hiddenSet.has(item.id));
+  const reviewVisible = inbox.reviewReady && !hiddenSet.has(REVIEW_ITEM_ID);
   const critical = visibleItems.filter((i) => i.severity === "critical").length;
   const warning = visibleItems.filter((i) => i.severity === "warning").length;
   const count = critical + warning + (reviewVisible ? 1 : 0);
@@ -63,16 +49,21 @@ export function AttentionInbox({ inbox }: { inbox: Inbox }) {
   }, [open]);
 
   const close = () => setOpen(false);
-  const dismiss = (id: string) => {
-    if (dismissed.includes(id)) return;
-    writeDismissed([...dismissed, id]);
+  const dismiss = (ids: string[]) => {
+    const newIds = ids.filter((id) => !hiddenSet.has(id));
+    if (!newIds.length) return;
+    setHiddenIds((current) => [...new Set([...current, ...newIds])]);
+    startTransition(async () => {
+      const result = await dismissAttentionAction(newIds);
+      if (!result.ok) setHiddenIds((current) => current.filter((id) => !newIds.includes(id)));
+    });
   };
   const clearVisible = () => {
     const ids = [
       ...visibleItems.map((item) => item.id),
       ...(reviewVisible ? [REVIEW_ITEM_ID] : []),
     ];
-    writeDismissed([...new Set([...dismissed, ...ids])]);
+    dismiss(ids);
   };
 
   return (
@@ -138,7 +129,7 @@ export function AttentionInbox({ inbox }: { inbox: Inbox }) {
                         <InboxRow
                           key={item.id}
                           item={item}
-                          onDismiss={() => dismiss(item.id)}
+                          onDismiss={() => dismiss([item.id])}
                           onNavigate={close}
                         />
                       ))}
@@ -164,7 +155,7 @@ export function AttentionInbox({ inbox }: { inbox: Inbox }) {
               <button
                 type="button"
                 aria-label="Clear weekly review"
-                onClick={() => dismiss(REVIEW_ITEM_ID)}
+                onClick={() => dismiss([REVIEW_ITEM_ID])}
                 className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-faint transition-colors hover:bg-surface hover:text-fg"
               >
                 <X className="h-3.5 w-3.5" />

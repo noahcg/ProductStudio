@@ -1,6 +1,8 @@
 import type {
   Decision,
   DecisionInput,
+  Expense,
+  ExpenseInput,
   Project,
   ProjectInput,
   Product,
@@ -26,6 +28,8 @@ import { signals } from "./signals";
 import { integrations } from "./signals";
 import { expenses, spendTrend } from "./spend";
 import { domains } from "./domains";
+
+const dismissedAttention = new Set<string>();
 
 /**
  * In-memory data source used only when DATA_SOURCE=mock is explicitly set.
@@ -154,8 +158,37 @@ export const mockSource: DataSource = {
     removeWhere(decisions, (d) => d.projectId === id);
     removeWhere(activity, (a) => a.projectId === id);
     removeWhere(signals, (s) => s.projectId === id);
-    removeWhere(expenses, (e) => e.projectId === id);
     removeWhere(domains, (d) => d.projectId === id);
+  },
+
+  // ---- Writes: expenses (mutate in-memory `expenses` array) ----
+  async createExpense(input: ExpenseInput) {
+    const expense: Expense = {
+      id: newId("expense"),
+      productId: input.productId,
+      service: input.service.trim(),
+      category: input.category,
+      amount: input.amount,
+      billingPeriod: input.billingPeriod,
+    };
+    expenses.push(expense);
+    return expense;
+  },
+  async updateExpense(id: string, input: ExpenseInput) {
+    const index = expenses.findIndex((expense) => expense.id === id);
+    if (index === -1) throw new Error(`Expense ${id} not found`);
+    const expense: Expense = { ...expenses[index], productId: input.productId, service: input.service.trim(), category: input.category, amount: input.amount, billingPeriod: input.billingPeriod };
+    expenses[index] = expense;
+    return expense;
+  },
+  async deleteExpense(id: string) {
+    removeWhere(expenses, (expense) => expense.id === id);
+  },
+  async dismissedAttentionIds() {
+    return [...dismissedAttention];
+  },
+  async dismissAttentionItems(ids: string[]) {
+    ids.forEach((id) => dismissedAttention.add(id));
   },
 
   // ---- Writes: mutate the in-memory `decisions` array (ephemeral dev store) ----
