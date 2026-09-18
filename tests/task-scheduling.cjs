@@ -13,6 +13,7 @@ require.extensions['.ts'] = (module, filename) => {
 };
 const { validateSchedule, dateKey } = require('../src/lib/tasks/schedule.ts');
 // local-source captures cwd when loaded; use an isolated directory.
+delete process.env.PRODUCT_STUDIO_DATA_DIR;
 const originalCwd = process.cwd();
 const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), 'studio-scheduling-'));
 process.chdir(sandbox);
@@ -43,6 +44,24 @@ const isolated = require('../src/lib/data/local-source.ts').localSource;
   assert.equal(stored.scheduledTime, undefined);
   const disk = JSON.parse(fs.readFileSync(path.join(sandbox, '.product-studio/data.json'), 'utf8'));
   assert.equal(disk.tasks.find(task => task.id === created.id).scheduledDate, undefined);
+  const { validateAppointment } = require('../src/lib/tasks/appointment.ts');
+  const project = (await isolated.projects())[0];
+  const meeting = { projectId: project.id, title: 'Client review', clientName: 'Test client', clientEmail: 'client@example.com', date: '2026-12-31', startTime: '09:00', endTime: '10:00', location: 'Video call', notes: 'Review the release.' };
+  assert.equal(validateAppointment(meeting), null);
+  for (const invalid of [{ endTime: '08:00' }, { endTime: '09:00' }, { startTime: '24:00' }, { date: '2026-02-29' }, { clientName: '' }, { clientEmail: 'invalid' }]) assert.ok(validateAppointment({ ...meeting, ...invalid }));
+  assert.deepEqual(await isolated.appointments(), []);
+  const saved = await isolated.saveAppointment(null, meeting);
+  assert.deepEqual((await isolated.appointments())[0], saved);
+  await isolated.saveAppointment(saved.id, { ...meeting, date: '2027-01-01', endTime: '11:00' });
+  const persisted = JSON.parse(fs.readFileSync(path.join(sandbox, '.product-studio/data.json'), 'utf8'));
+  assert.equal(persisted.appointments[0].date, '2027-01-01');
+  assert.equal(persisted.appointments[0].createdAt, saved.createdAt);
+  assert.equal(persisted.appointments[0].clientEmail, meeting.clientEmail);
+  await assert.rejects(isolated.saveAppointment('missing', meeting));
+  await assert.rejects(isolated.saveAppointment(null, { ...meeting, projectId: 'missing' }));
+  await isolated.deleteAppointment(saved.id);
+  assert.deepEqual(await isolated.appointments(), []);
+  console.log('Passed: appointment validation, legacy store compatibility, persistence, editing, and deletion.');
   console.log('Passed: date/time validation, local calendar dates, persistence, completion, rescheduling, and clearing schedules.');
 })().finally(() => { process.chdir(originalCwd); fs.rmSync(sandbox, { recursive: true, force: true }); }).catch(error => { console.error(error); process.exitCode = 1; });
 

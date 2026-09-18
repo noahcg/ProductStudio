@@ -1,3 +1,4 @@
+import type { Appointment } from "../domain/appointment";
 import type {
   Decision,
   DecisionInput,
@@ -29,6 +30,8 @@ import { integrations } from "./signals";
 import { expenses, spendTrend } from "./spend";
 import { domains } from "./domains";
 
+let appointments: Appointment[] = [];
+
 const dismissedAttention = new Set<string>();
 
 /**
@@ -45,6 +48,15 @@ export const mockSource: DataSource = {
   async milestones() {
     return milestones;
   },
+  async appointments() { return appointments; },
+  async saveAppointment(id, input) {
+    const previous = appointments.find((a) => a.id === id);
+    if (id && !previous) throw new Error("Appointment not found.");
+    const appointment = { ...input, id: id ?? crypto.randomUUID(), createdAt: previous?.createdAt ?? new Date().toISOString() };
+    appointments = [...appointments.filter((a) => a.id !== id), appointment];
+    return appointment;
+  },
+  async deleteAppointment(id) { appointments = appointments.filter((a) => a.id !== id); },
   async tasks() {
     return tasks;
   },

@@ -1,3 +1,4 @@
+import { activeSource } from "@/lib/data/source";
 import { Suspense } from "react";
 import { FocusBoard } from "@/components/focus/focus-board";
 import {
@@ -16,11 +17,12 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function ProjectsPage() {
-  const [products, projects, milestones, tasks, result, health, domains, vercel, supabase] = await Promise.all([
+  const [products, projects, milestones, tasks, appointments, result, health, domains, vercel, supabase] = await Promise.all([
     getProducts(),
     getProjects(),
     getMilestones(),
     getTasks(),
+    activeSource().appointments(),
     getFocusResult(),
     getProjectHealth(),
     getDomains(),
@@ -36,6 +38,7 @@ export default async function ProjectsPage() {
         ranked={result.ranked}
         milestones={milestones}
         tasks={tasks}
+        appointments={appointments}
         health={health}
         domains={domains}
         vercel={vercel}

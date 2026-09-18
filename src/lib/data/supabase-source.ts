@@ -1,3 +1,4 @@
+import type { AppointmentInput } from "../domain/appointment";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   Project,
@@ -234,6 +235,24 @@ export function supabaseSource(sb: SupabaseClient): DataSource {
 
   return {
     kind: "supabase",
+    async appointments() {
+      const { data, error } = await sb.from("appointments").select("*, project:projects(slug)");
+      if (error) throw error;
+      return (data ?? []).map((row) => ({ ...(row.details as AppointmentInput), id: row.id, projectId: nested(row, "project") ?? "", createdAt: row.created_at }));
+    },
+    async saveAppointment(id, input) {
+      const project_id = await projectUuid(sb, input.projectId);
+      if (!project_id) throw new Error("Project not found.");
+      const fields = { project_id, details: input };
+      const query = id ? sb.from("appointments").update(fields).eq("id", id) : sb.from("appointments").insert(fields);
+      const { data, error } = await query.select().single();
+      if (error) throw error;
+      return { ...input, id: data.id, createdAt: data.created_at };
+    },
+    async deleteAppointment(id) {
+      const { error } = await sb.from("appointments").delete().eq("id", id);
+      if (error) throw error;
+    },
 
     async projects() {
       return (await rows("projects", "*, product:products(slug)", { column: "position" })).map(mapProject);

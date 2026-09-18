@@ -1,3 +1,4 @@
+import type { Appointment } from "../domain/appointment";
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import type {
@@ -38,6 +39,7 @@ import { domains } from "./domains";
 
 interface LocalStore {
   version: 3;
+  appointments?: Appointment[];
   products: Product[];
   projects: Project[];
   milestones: Milestone[];
@@ -278,6 +280,19 @@ export const localSource: DataSource = {
   async milestones() {
     return (await readStore()).milestones;
   },
+  async appointments() { return (await readStore()).appointments ?? []; },
+  async saveAppointment(id, input) {
+    return mutate((store) => {
+      if (!store.projects.some((p) => p.id === input.projectId)) throw new Error("Project not found.");
+      store.appointments ??= [];
+      const previous = store.appointments.find((a) => a.id === id);
+      if (id && !previous) throw new Error("Appointment not found.");
+      const appointment: Appointment = { ...input, id: id ?? newId("appointment"), createdAt: previous?.createdAt ?? studioNow().toISOString() };
+      store.appointments = [...store.appointments.filter((a) => a.id !== id), appointment];
+      return appointment;
+    });
+  },
+  async deleteAppointment(id) { await mutate((store) => { store.appointments = (store.appointments ?? []).filter((a) => a.id !== id); }); },
   async tasks() {
     return (await readStore()).tasks;
   },
@@ -379,6 +394,7 @@ export const localSource: DataSource = {
       store.projects = store.projects.filter((p) => p.id !== id);
       store.milestones = store.milestones.filter((m) => m.projectId !== id);
       store.tasks = store.tasks.filter((t) => t.projectId !== id);
+      store.appointments = (store.appointments ?? []).filter((a) => a.projectId !== id);
       store.roadmap = store.roadmap.map((item) =>
         item.projectId === id ? { ...item, projectId: undefined, milestoneId: undefined } : item
       );

@@ -1,3 +1,4 @@
+import type { Appointment, AppointmentInput } from "../domain/appointment";
 import type {
   Project,
   ProjectInput,
@@ -49,6 +50,9 @@ export interface DataSource {
   products(): Promise<Product[]>;
   milestones(): Promise<Milestone[]>;
   tasks(): Promise<Task[]>;
+  appointments(): Promise<Appointment[]>;
+  saveAppointment(id: string | null, input: AppointmentInput): Promise<Appointment>;
+  deleteAppointment(id: string): Promise<void>;
   roadmap(): Promise<RoadmapItem[]>;
   decisions(): Promise<Decision[]>;
   activity(): Promise<Activity[]>;

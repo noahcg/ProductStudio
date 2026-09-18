@@ -1,5 +1,6 @@
 "use client";
 
+import type { Appointment } from "@/lib/domain/appointment";
 import { useOptimistic, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -27,6 +28,7 @@ import { ProjectForm } from "@/components/projects/project-form";
 import { ProductForm } from "@/components/products/product-form";
 import { TaskCalendar } from "./task-calendar";
 import { TaskForm } from "./task-form";
+import { TaskDetails } from "./task-details";
 import { HealthSummary } from "./health-summary";
 import { DomainPanel } from "./domain-panel";
 import { DeploymentPanel } from "./deployment-panel";
@@ -61,6 +63,7 @@ export function FocusBoard({
   ranked,
   milestones,
   tasks,
+  appointments,
   health,
   domains,
   vercel,
@@ -71,6 +74,7 @@ export function FocusBoard({
   ranked: ProjectFocus[];
   milestones: Milestone[];
   tasks: Task[];
+  appointments: Appointment[];
   health: ProjectHealth[];
   domains: Domain[];
   vercel: Record<string, VercelProjectStatus>;
@@ -84,6 +88,7 @@ export function FocusBoard({
   const [localProjects, setLocalProjects] = useState(projects);
   const [selectedProductId, setSelectedProductId] = useState(selectedProductFromUrl ?? projects[0]?.productId ?? products[0]?.id ?? "");
   const [selectedId, setSelectedId] = useState(params.get("project") ?? projects[0]?.id ?? "");
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [taskModal, setTaskModal] = useState<TaskModal>({ mode: "closed" });
   const [projectModal, setProjectModal] = useState<ProjectModal>({ mode: "closed" });
   const [productModal, setProductModal] = useState<"new" | Product | null>(null);
@@ -116,6 +121,7 @@ export function FocusBoard({
   const goalTitle = milestone?.title ?? project?.nextMilestone ?? "";
   const goalDuplicatesProject = Boolean(project && sameLabel(goalTitle, project.name));
   const projectTasks = optimistic.filter((t) => t.projectId === effectiveSelectedId);
+  const viewedTask = projectTasks.find((task) => task.id === selectedTaskId) ?? projectTasks[0];
   const stats = taskStats(projectTasks);
   const selectedHealth = health.find((h) => h.project.id === effectiveSelectedId);
   const selectedDomains = domains.filter((d) => d.projectId === effectiveSelectedId);
@@ -321,6 +327,8 @@ export function FocusBoard({
                         onToggleProgress={() =>
                           setStatus(task, task.status === "in_progress" ? "todo" : "in_progress")
                         }
+                        selected={viewedTask?.id === task.id}
+                        onView={() => setSelectedTaskId(task.id)}
                         onEdit={() => setTaskModal({ mode: "edit", task })}
                         onDelete={() => removeTask(task)}
                       />
@@ -337,12 +345,10 @@ export function FocusBoard({
                   </div>
                 </div>
               )}
+              {viewedTask && <TaskDetails task={viewedTask} onEdit={() => setTaskModal({ mode: "edit", task: viewedTask })} />}
               {error && <p className="mt-3 text-sm text-danger">{error}</p>}
             </Card>
 
-            <TaskCalendar tasks={optimistic} projects={localProjects} projectId={effectiveSelectedId}
-              onEdit={(task) => { setError(null); setTaskModal({ mode: "edit", task }); }}
-              onAdd={(date) => { setError(null); setTaskModal({ mode: "new", date }); }} />
             <MeetingNotes projects={localProjects} projectId={project.id} />
           </div>
 
@@ -383,8 +389,10 @@ export function FocusBoard({
         </div>
       )}
 
+      {project && <TaskCalendar key={effectiveSelectedId} tasks={optimistic} appointments={appointments} projects={localProjects} projectId={effectiveSelectedId} onAdd={(date) => setTaskModal({ mode: "new", date })} />}
+
       <TaskForm
-        open={taskModal.mode !== "closed"}
+        open={taskModal.mode === "new" || taskModal.mode === "edit"}
         initial={taskModal.mode === "edit" ? taskModal.task : null}
         initialDate={taskModal.mode === "new" ? taskModal.date : undefined}
         milestoneTitle={taskModal.mode === "edit" ? localProjects.find((p) => p.id === taskModal.task.projectId)?.name : goalDuplicatesProject ? project?.name : milestone ? `${project?.name} — ${milestone.title}` : project?.name}
@@ -525,14 +533,18 @@ function Chip({ tone, children }: { tone: "ok" | "warn" | "muted"; children: Rea
 
 function TaskRow({
   task,
+  selected,
   onToggleComplete,
   onToggleProgress,
+  onView,
   onEdit,
   onDelete,
 }: {
   task: Task;
   onToggleComplete: () => void;
   onToggleProgress: () => void;
+  selected: boolean;
+  onView: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -541,7 +553,7 @@ function TaskRow({
     "grid h-6 w-6 place-items-center rounded-md text-faint transition-colors hover:bg-surface hover:text-fg";
 
   return (
-    <li className="group flex items-center gap-3 rounded-xl border border-line bg-surface-2/50 px-3.5 py-2.5">
+    <li className={cn("group flex items-center gap-3 rounded-lg border px-3.5 py-2.5", selected ? "border-accent/30 bg-accent/5" : "border-transparent hover:bg-surface-2/50")}>
       <button
         aria-label={done ? "Reopen task" : "Complete task"}
         onClick={onToggleComplete}
@@ -561,17 +573,17 @@ function TaskRow({
         ) : null}
       </button>
 
-      <span className={cn("min-w-0 flex-1 text-sm", done ? "text-muted line-through" : "text-fg")}>
+      <button type="button" onClick={onView} aria-label={`View details for ${task.title}`} aria-pressed={selected} className={cn("min-w-0 flex-1 rounded text-left text-sm hover:text-accent focus-visible:outline-2 focus-visible:outline-accent", done ? "text-muted line-through" : "text-fg")}>
         {task.title}
         {task.scheduledDate && <span className="mt-0.5 block text-xs text-muted">{task.scheduledDate}{task.scheduledTime ? ` · ${task.scheduledTime}` : " · All day"}</span>}
         {task.source?.label && (
           <span className="mt-0.5 block truncate text-xs text-faint">{task.source.label}</span>
         )}
-      </span>
+      </button>
 
       {task.status === "in_progress" && <Badge tone="violet">In progress</Badge>}
 
-      <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+      <div className="flex items-center gap-0.5 opacity-100 transition-opacity sm:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100">
         <button aria-label="Toggle in progress" onClick={onToggleProgress} className={ctrl}>
           <CircleDot className="h-3.5 w-3.5" />
         </button>
