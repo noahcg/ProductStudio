@@ -121,7 +121,9 @@ export function FocusBoard({
   const goalTitle = milestone?.title ?? project?.nextMilestone ?? "";
   const goalDuplicatesProject = Boolean(project && sameLabel(goalTitle, project.name));
   const projectTasks = optimistic.filter((t) => t.projectId === effectiveSelectedId);
-  const viewedTask = projectTasks.find((task) => task.id === selectedTaskId) ?? projectTasks[0];
+  const viewedTask = projectTasks.find((task) => task.id === selectedTaskId)
+    ?? projectTasks.find((task) => task.status !== "completed")
+    ?? projectTasks[0];
   const stats = taskStats(projectTasks);
   const selectedHealth = health.find((h) => h.project.id === effectiveSelectedId);
   const selectedDomains = domains.filter((d) => d.projectId === effectiveSelectedId);
@@ -349,6 +351,8 @@ export function FocusBoard({
               {error && <p className="mt-3 text-sm text-danger">{error}</p>}
             </Card>
 
+            <TaskCalendar key={effectiveSelectedId} tasks={optimistic} appointments={appointments} projects={localProjects} projectId={effectiveSelectedId} onAdd={(date) => setTaskModal({ mode: "new", date })} />
+
             <MeetingNotes projects={localProjects} projectId={project.id} />
           </div>
 
@@ -389,7 +393,6 @@ export function FocusBoard({
         </div>
       )}
 
-      {project && <TaskCalendar key={effectiveSelectedId} tasks={optimistic} appointments={appointments} projects={localProjects} projectId={effectiveSelectedId} onAdd={(date) => setTaskModal({ mode: "new", date })} />}
 
       <TaskForm
         open={taskModal.mode === "new" || taskModal.mode === "edit"}
