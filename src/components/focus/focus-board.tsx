@@ -33,6 +33,7 @@ import { HealthSummary } from "./health-summary";
 import { DomainPanel } from "./domain-panel";
 import { DeploymentPanel } from "./deployment-panel";
 import { SupabasePanel } from "./supabase-panel";
+import { ServiceGuide } from "./service-guide";
 import {
   createTaskAction,
   updateTaskAction,
@@ -268,13 +269,16 @@ export function FocusBoard({
           />
 
           {!project ? (
-            <Card className="flex min-h-72 flex-col items-center justify-center p-10 text-center">
-              <p className="text-lg font-semibold text-fg">{selectedProduct?.name ?? "This product"} has no projects yet.</p>
-              <p className="mt-2 text-sm text-muted">Create a project to begin adding tasks.</p>
-              <Button className="mt-5" variant="primary" onClick={() => setProjectModal({ mode: "new" })}>
-                <Plus className="h-4 w-4" /> Create project
-              </Button>
-            </Card>
+            <div className="space-y-5">
+              <Card className="flex min-h-72 flex-col items-center justify-center p-10 text-center">
+                <p className="text-lg font-semibold text-fg">{selectedProduct?.name ?? "This product"} has no projects yet.</p>
+                <p className="mt-2 text-sm text-muted">Create a project to begin adding tasks.</p>
+                <Button className="mt-5" variant="primary" onClick={() => setProjectModal({ mode: "new" })}>
+                  <Plus className="h-4 w-4" /> Create project
+                </Button>
+              </Card>
+              <ServiceGuide product={selectedProduct} projects={projectsForProduct} />
+            </div>
           ) : <>
           <div className="flex flex-col gap-5">
             <Card className="p-6">
@@ -357,6 +361,7 @@ export function FocusBoard({
           </div>
 
           <div className="flex flex-col gap-5">
+            <ServiceGuide product={selectedProduct} projects={projectsForProduct} />
             <Card className="p-5">
               <div className="flex items-center gap-2">
                 <Settings className="h-4 w-4 text-accent" />
